@@ -21,7 +21,7 @@ cp_info *get_constant(constant_pool_t *constant_pool, uint16_t index);
  * @param name the method name, e.g. "factorial"
  * @param descriptor the method descriptor string, e.g. "(I)I"
  * @param class the parsed class file
- * @return the method if it was found, or NULL
+ * @return the method if it was found, NULL otherwise
  */
 method_t *find_method(const char *name, const char *descriptor, class_file_t *class);
 /**
@@ -29,7 +29,7 @@ method_t *find_method(const char *name, const char *descriptor, class_file_t *cl
  *
  * @param index the constant pool index of the Methodref to call
  * @param class the parsed class file
- * @return
+ * @return the method if it was found, NULL otherwise
  */
 method_t *find_method_from_index(uint16_t index, class_file_t *class);
 /**
