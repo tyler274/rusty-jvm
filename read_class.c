@@ -24,25 +24,23 @@ u4 read_u4(FILE *class_file) {
     return (u4) read_u2(class_file) << 16 | read_u2(class_file);
 }
 
-cp_info *get_constant(constant_pool_t *constant_pool, u2 index) {
-    assert(
-        0 < index && index <= constant_pool->constant_pool_count &&
-        "Invalid constant pool index"
-    );
+cp_info *get_constant(cp_info *constant_pool, u2 index) {
+    assert(index > 0 && "Invalid constant pool index");
+    // Ensure index is not past the end of the constant pool
+    for (u2 previous_index = 0; previous_index < index; previous_index++) {
+        assert(constant_pool[previous_index].info && "Invalid constant pool index");
+    }
     // Convert 1-indexed index to 0-indexed index
-    return &constant_pool->constant_pool[index - 1];
+    return &constant_pool[index - 1];
 }
 
-CONSTANT_NameAndType_info *get_method_name_and_type(
-    constant_pool_t *constant_pool,
-    u2 index
-) {
+CONSTANT_NameAndType_info *get_method_name_and_type(cp_info *constant_pool, u2 index) {
     cp_info *method_constant = get_constant(constant_pool, index);
     assert(method_constant->tag == CONSTANT_Methodref && "Expected a MethodRef");
-    cp_info *name_and_type_constant = get_constant(
-        constant_pool,
-        ((CONSTANT_FieldOrMethodref_info *) method_constant->info)->name_and_type_index
-    );
+    CONSTANT_FieldOrMethodref_info *method_ref =
+        (CONSTANT_FieldOrMethodref_info *) method_constant->info;
+    cp_info *name_and_type_constant =
+        get_constant(constant_pool, method_ref->name_and_type_index);
     assert(
         name_and_type_constant->tag == CONSTANT_NameAndType &&
         "Expected a NameAndType"
@@ -50,7 +48,7 @@ CONSTANT_NameAndType_info *get_method_name_and_type(
     return (CONSTANT_NameAndType_info *) name_and_type_constant->info;
 }
 
-uint16_t get_number_of_parameters(method_t *method) {
+u2 get_number_of_parameters(method_t *method) {
     // Type descriptors will always have the length ( + #params + ) + return type
     return strlen(method->descriptor) - 3;
 }
@@ -64,12 +62,13 @@ method_t *find_method(const char *name, const char *descriptor, class_file_t *cl
     return NULL;
 }
 
-method_t *find_method_from_index(uint16_t index, class_file_t *class) {
+method_t *find_method_from_index(u2 index, class_file_t *class) {
     CONSTANT_NameAndType_info *name_and_type =
-        get_method_name_and_type(&class->constant_pool, index);
-    cp_info *name = get_constant(&class->constant_pool, name_and_type->name_index);
+        get_method_name_and_type(class->constant_pool, index);
+    cp_info *name = get_constant(class->constant_pool, name_and_type->name_index);
     assert(name->tag == CONSTANT_Utf8 && "Expected a UTF8");
-    cp_info *descriptor = get_constant(&class->constant_pool, name_and_type->descriptor_index);
+    cp_info *descriptor =
+        get_constant(class->constant_pool, name_and_type->descriptor_index);
     assert(descriptor->tag == CONSTANT_Utf8 && "Expected a UTF8");
     return find_method((char *) name->info, (char *) descriptor->info, class);
 }
@@ -82,26 +81,23 @@ class_header_t get_class_header(FILE *class_file) {
     return header;
 }
 
-constant_pool_t get_constant_pool(FILE *class_file) {
-    constant_pool_t constant_pool;
+cp_info *get_constant_pool(FILE *class_file) {
     // Constant pool count includes unused constant at index 0
-    constant_pool.constant_pool_count = read_u2(class_file) - 1;
-    constant_pool.constant_pool =
-        malloc(sizeof(cp_info) * constant_pool.constant_pool_count);
-    assert(constant_pool.constant_pool && "Failed to allocate constant pool");
+    u2 constant_pool_count = read_u2(class_file) - 1;
+    cp_info *constant_pool = malloc(sizeof(*constant_pool) * (constant_pool_count + 1));
+    assert(constant_pool && "Failed to allocate constant pool");
 
-    cp_info *constant = constant_pool.constant_pool;
-    for (u2 i = 0; i < constant_pool.constant_pool_count; i++, constant++) {
+    cp_info *constant = constant_pool;
+    for (u2 i = 0; i < constant_pool_count; i++, constant++) {
         constant->tag = read_u1(class_file);
         switch (constant->tag) {
             case CONSTANT_Utf8: {
                 u2 length = read_u2(class_file);
-                char *value = malloc(length + 1);
-                assert(value && "Failed to allocate UTF8 constant");
-                size_t bytes_read = fread(value, 1, length, class_file);
+                constant->info = malloc(length + 1);
+                assert(constant->info && "Failed to allocate UTF8 constant");
+                size_t bytes_read = fread(constant->info, 1, length, class_file);
                 assert(bytes_read == length && "Failed to read UTF8 constant");
-                value[length] = '\0';
-                constant->info = (u1 *) value;
+                constant->info[length] = '\0';
                 break;
             }
 
@@ -145,6 +141,9 @@ constant_pool_t get_constant_pool(FILE *class_file) {
                 exit(1);
         }
     }
+
+    // Mark end of array with NULL info
+    constant->info = NULL;
     return constant_pool;
 }
 
@@ -164,7 +163,7 @@ void read_method_attributes(
     FILE *class_file,
     method_info *info,
     code_t *code,
-    constant_pool_t *constant_pool
+    cp_info *constant_pool
 ) {
     bool found_code = false;
     for (u2 i = 0; i < info->attributes_count; i++) {
@@ -192,7 +191,7 @@ void read_method_attributes(
     assert(found_code && "Missing method code");
 }
 
-method_t *get_methods(FILE *class_file, constant_pool_t *constant_pool) {
+method_t *get_methods(FILE *class_file, cp_info *constant_pool) {
     u2 method_count = read_u2(class_file);
     method_t *methods = malloc(sizeof(*methods) * (method_count + 1));
     assert(methods && "Failed to allocate methods");
@@ -212,8 +211,8 @@ method_t *get_methods(FILE *class_file, constant_pool_t *constant_pool) {
         assert(descriptor->tag == CONSTANT_Utf8 && "Expected a UTF8");
         method->descriptor = (char *) descriptor->info;
 
-        /* Our JVM can only execute static methods,
-         * but every class has a constructor method <init> */
+        /* Our JVM can only execute static methods, so ensure all methods are static.
+         * However, javac creates a constructor method <init> we need to ignore. */
         if (strcmp(method->name, "<init>")) {
             assert((info.access_flags & IS_STATIC) && "This VM only supports static methods.");
         }
@@ -240,17 +239,16 @@ class_file_t get_class(FILE *class_file) {
     get_class_info(class_file);
 
     // Read the list of static methods
-    class.methods = get_methods(class_file, &class.constant_pool);
+    class.methods = get_methods(class_file, class.constant_pool);
 
     return class;
 }
 
 void free_class(class_file_t *class) {
-    constant_pool_t *constant_pool = &class->constant_pool;
-    for (u2 i = 0; i < constant_pool->constant_pool_count; i++) {
-        free(constant_pool->constant_pool[i].info);
+    for (cp_info *constant = class->constant_pool; constant->info; constant++) {
+        free(constant->info);
     }
-    free(constant_pool->constant_pool);
+    free(class->constant_pool);
 
     for (method_t *method = class->methods; method->name; method++) {
         free(method->code.code);
