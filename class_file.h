@@ -12,6 +12,8 @@
 
 #include <stdint.h>
 
+/* Integer type aliases used in the JVM documentation.
+ * You may use these aliases or the corresponding stdint.h types. */
 typedef uint8_t u1;
 typedef uint16_t u2;
 typedef uint32_t u4;
@@ -40,10 +42,18 @@ typedef struct {
     u4 attribute_length;
 } attribute_info;
 
+/** The JVM's representation of a Java method's code */
 typedef struct {
+    /** The maximum number of ints that will be on the operand stack */
     u2 max_stack;
+    /** The number of int locals (method parameters + local variables) */
     u2 max_locals;
+    /** The number of bytes in the method's bytecode */
     u4 code_length;
+    /**
+     * The method's bytecode, a list of JVM instructions represented as bytes.
+     * See the project01 spec for how to interpret these bytes.
+     */
     u1 *code;
 } code_t;
 
@@ -53,6 +63,10 @@ typedef struct {
     code_t code;
 } method_t;
 
+/**
+ * Magic numbers the JVM uses to identify the types of constant pool entry.
+ * You will only need to handle the CONSTANT_Integer case.
+ */
 typedef enum {
     CONSTANT_Utf8 = 1,
     CONSTANT_Integer = 3,
@@ -71,6 +85,7 @@ typedef struct {
     u2 name_and_type_index;
 } CONSTANT_FieldOrMethodref_info;
 
+/** The representation of an int in a constant pool entry */
 typedef struct {
     int32_t bytes;
 } CONSTANT_Integer_info;
@@ -80,18 +95,30 @@ typedef struct {
     u2 descriptor_index;
 } CONSTANT_NameAndType_info;
 
+/** An entry in a class file's constant pool */
 typedef struct {
+    /** The type of constant, which determines how to interpret `info` */
     cp_tag_t tag;
+    /**
+     * A pointer to the byte array that stores the constant's value.
+     * `tag` determines how these bytes should be interpreted.
+     * For example, an integer constant's bytes store a CONSTANT_Integer_info struct.
+     */
     u1 *info;
 } cp_info;
 
+/** A class file, consisting of an array of constants and an array of methods */
 typedef struct {
-    u2 constant_pool_count;
+    /**
+     * The class's array of constants.
+     * Note that this array is 0-indexed, but the bytecode refers to 1-indexed constants.
+     * The array is "null-terminated": `constant_pool[length].info == NULL`.
+     */
     cp_info *constant_pool;
-} constant_pool_t;
-
-typedef struct {
-    constant_pool_t constant_pool;
+    /**
+     * The class's methods, in no particular order.
+     * The array is "null-terminated": `methods[length].name == NULL`.
+     */
     method_t *methods;
 } class_file_t;
 
