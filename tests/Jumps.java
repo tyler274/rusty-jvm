@@ -13,6 +13,10 @@ public class Jumps {
         for (int i = 0; i != 11; i++) {
             System.out.println(catalan(i));
         }
+
+        // Check overflowing comparisons
+        System.out.println(max(-2147483648, 2147483647));
+        System.out.println(max(1234112124, -2020202020));
     }
 
     public static int signum(int n) {
