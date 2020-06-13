@@ -100,11 +100,11 @@ typedef struct {
     /** The type of constant, which determines how to interpret `info` */
     cp_tag_t tag;
     /**
-     * A pointer to the byte array that stores the constant's value.
-     * `tag` determines how these bytes should be interpreted.
-     * For example, an integer constant's bytes store a CONSTANT_Integer_info struct.
+     * A pointer to the constant's value.
+     * `tag` determines what type of value `info` points to.
+     * For example, an integer constant's `info` points to a CONSTANT_Integer_info struct.
      */
-    u1 *info;
+    void *info;
 } cp_info;
 
 /** A class file, consisting of an array of constants and an array of methods */

@@ -1,22 +1,20 @@
+#include "jvm.h"
+
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <assert.h>
 
-#include "jvm.h"
 #include "read_class.h"
 
 /** The name of the method to invoke to run the class file */
-const char *MAIN_METHOD = "main";
+const char MAIN_METHOD[] = "main";
 /**
  * The "descriptor" string for main(). The descriptor encodes main()'s signature,
  * i.e. main() takes a String[] and returns void.
  * If you're interested, the descriptor string is explained at
  * https://docs.oracle.com/javase/specs/jvms/se12/html/jvms-4.html#jvms-4.3.2.
  */
-const char *MAIN_DESCRIPTOR = "([Ljava/lang/String;)V";
+const char MAIN_DESCRIPTOR[] = "([Ljava/lang/String;)V";
 
 /**
  * Runs a method's instructions until the method returns.
@@ -45,22 +43,22 @@ int main(int argc, char *argv[]) {
 
     // Open the class file for reading
     FILE *class_file = fopen(argv[1], "r");
-    assert(class_file && "Failed to open file");
+    assert(class_file != NULL && "Failed to open file");
 
     // Parse the class file
-    class_file_t class = get_class(class_file);
+    class_file_t *class = get_class(class_file);
     int error = fclose(class_file);
-    assert(!error && "Failed to close file");
+    assert(error == 0 && "Failed to close file");
 
     // Execute the main method
-    method_t *main_method = find_method(MAIN_METHOD, MAIN_DESCRIPTOR, &class);
-    assert(main_method && "Missing main() method");
+    method_t *main_method = find_method(MAIN_METHOD, MAIN_DESCRIPTOR, class);
+    assert(main_method != NULL && "Missing main() method");
     /* In a real JVM, locals[0] would contain a reference to String[] args.
      * But since TeenyJVM doesn't support Objects, we leave it uninitialized. */
     int32_t locals[main_method->code.max_locals];
-    int32_t *result = execute(main_method, locals, &class);
-    assert(!result && "main() should return void");
+    int32_t *result = execute(main_method, locals, class);
+    assert(result == NULL && "main() should return void");
 
     // Free the internal data structures
-    free_class(&class);
+    free_class(class);
 }

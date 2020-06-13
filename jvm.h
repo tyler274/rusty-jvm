@@ -51,7 +51,7 @@ typedef enum {
     i_return = 0xb1,
     i_getstatic = 0xb2,
     i_invokevirtual = 0xb6,
-    i_invokestatic = 0xb8,
+    i_invokestatic = 0xb8
 } jvm_instruction_t;
 
 #endif /* JVM_H */
