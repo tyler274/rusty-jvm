@@ -1,5 +1,5 @@
 CC = clang-with-asan
-CFLAGS = -Wall -Wextra -fno-sanitize=integer
+CFLAGS = -Wall -Wextra -Werror -fno-sanitize=integer
 TESTS_1 = OnePlusTwo
 TESTS_2 = $(TESTS_1) PrintOnePlusTwo
 TESTS_3 = $(TESTS_2) Constants Part3
