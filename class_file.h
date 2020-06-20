@@ -57,9 +57,23 @@ typedef struct {
     u1 *code;
 } code_t;
 
+/** A Java method */
 typedef struct {
+    /**
+     * The method name, e.g. "main".
+     * This is used with the descriptor string to look up the method.
+     */
     char *name;
+    /**
+     * The method descriptor, e.g. "([Ljava/lang/String;)V",
+     * which represents the method's signature.
+     * This is used together with the name to look up the method,
+     * which allows for method overloading.
+     * If you're interested, descriptor strings are explained at
+     * https://docs.oracle.com/javase/specs/jvms/se12/html/jvms-4.html#jvms-4.3.2.
+     */
     char *descriptor;
+    /** The method's bytecode (see the comments for `code_t`) */
     code_t code;
 } method_t;
 
