@@ -20,6 +20,9 @@ test6: $(TESTS_6:=-result)
 test7: $(TESTS_7:=-result)
 test8: $(TESTS_8:=-result)
 
+%.o: %.c
+	$(CC) $(CFLAGS) -c $^ -o $@
+
 jvm: jvm.o read_class.o
 	$(CC) $(CFLAGS) $^ -o $@
 
