@@ -1,6 +1,7 @@
 #include "jvm.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -17,22 +18,35 @@ const char MAIN_METHOD[] = "main";
 const char MAIN_DESCRIPTOR[] = "([Ljava/lang/String;)V";
 
 /**
+ * Represents the return value of a Java method: either void or an int.
+ * (In a real JVM, methods could also return object references or other primitives.)
+ */
+typedef struct {
+    /** Whether this returned value is an int */
+    bool has_value;
+    /** The returned value (only valid if `has_value` is true) */
+    int32_t value;
+} optional_int_t;
+
+/**
  * Runs a method's instructions until the method returns.
  *
  * @param method the method to run
  * @param locals the array of local variables, including the method parameters.
  *   Except for parameters, the locals are uninitialized.
  * @param class the class file the method belongs to
- * @return if the method returns an int, a heap-allocated pointer to it;
- *   if the method returns void, NULL
+ * @return an optional int containing the method's return value
  */
-int32_t *execute(method_t *method, int32_t *locals, class_file_t *class) {
+optional_int_t execute(method_t *method, int32_t *locals, class_file_t *class) {
     /* You should remove these casts to void in your solution.
      * They are just here so the code compiles without warnings. */
     (void) method;
     (void) locals;
     (void) class;
-    return NULL;
+
+    // Return void
+    optional_int_t result = {.has_value = false};
+    return result;
 }
 
 int main(int argc, char *argv[]) {
@@ -56,8 +70,8 @@ int main(int argc, char *argv[]) {
     /* In a real JVM, locals[0] would contain a reference to String[] args.
      * But since TeenyJVM doesn't support Objects, we leave it uninitialized. */
     int32_t locals[main_method->code.max_locals];
-    int32_t *result = execute(main_method, locals, class);
-    assert(result == NULL && "main() should return void");
+    optional_int_t result = execute(main_method, locals, class);
+    assert(!result.has_value && "main() should return void");
 
     // Free the internal data structures
     free_class(class);
