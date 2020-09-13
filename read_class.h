@@ -15,11 +15,8 @@
  * @param class the parsed class file
  * @return the method if it was found, NULL otherwise
  */
-method_t *find_method(
-    const char *name,
-    const char *descriptor,
-    const class_file_t *class
-);
+method_t *find_method(const char *name, const char *descriptor,
+                      const class_file_t *class);
 
 /**
  * Finds the method corresponding to the given constant pool index.

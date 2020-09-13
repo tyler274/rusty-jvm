@@ -33,10 +33,8 @@ u2 constant_pool_size(cp_info *constant_pool) {
 }
 
 cp_info *get_constant(cp_info *constant_pool, u2 index) {
-    assert(
-        0 < index && index <= constant_pool_size(constant_pool) &&
-        "Invalid constant pool index"
-    );
+    assert(0 < index && index <= constant_pool_size(constant_pool) &&
+           "Invalid constant pool index");
     // Convert 1-indexed index to 0-indexed index
     return &constant_pool[index - 1];
 }
@@ -47,10 +45,8 @@ CONSTANT_NameAndType_info *get_method_name_and_type(cp_info *constant_pool, u2 i
     CONSTANT_FieldOrMethodref_info *method_ref = method_constant->info;
     cp_info *name_and_type_constant =
         get_constant(constant_pool, method_ref->name_and_type_index);
-    assert(
-        name_and_type_constant->tag == CONSTANT_NameAndType &&
-        "Expected a NameAndType"
-    );
+    assert(name_and_type_constant->tag == CONSTANT_NameAndType &&
+           "Expected a NameAndType");
     return name_and_type_constant->info;
 }
 
@@ -59,11 +55,8 @@ u2 get_number_of_parameters(const method_t *method) {
     return strlen(method->descriptor) - 3;
 }
 
-method_t *find_method(
-    const char *name,
-    const char *descriptor,
-    const class_file_t *class
-) {
+method_t *find_method(const char *name, const char *descriptor,
+                      const class_file_t *class) {
     for (method_t *method = class->methods; method->name != NULL; method++) {
         if (strcmp(method->name, name) == 0 &&
             strcmp(method->descriptor, descriptor) == 0) {
@@ -173,12 +166,8 @@ class_info_t get_class_info(FILE *class_file) {
     return info;
 }
 
-void read_method_attributes(
-    FILE *class_file,
-    method_info *info,
-    code_t *code,
-    cp_info *constant_pool
-) {
+void read_method_attributes(FILE *class_file, method_info *info, code_t *code,
+                            cp_info *constant_pool) {
     bool found_code = false;
     for (u2 attributes = info->attributes_count; attributes > 0; attributes--) {
         attribute_info ainfo;
@@ -228,10 +217,8 @@ method_t *get_methods(FILE *class_file, cp_info *constant_pool) {
         /* Our JVM can only execute static methods, so ensure all methods are static.
          * However, javac creates a constructor method <init> we need to ignore. */
         if (strcmp(method->name, "<init>") != 0) {
-            assert(
-                (info.access_flags & IS_STATIC) != 0 &&
-                "This VM only supports static methods."
-            );
+            assert((info.access_flags & IS_STATIC) != 0 &&
+                   "This VM only supports static methods.");
         }
 
         read_method_attributes(class_file, &info, &method->code, constant_pool);
