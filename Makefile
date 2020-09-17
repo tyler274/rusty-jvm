@@ -36,7 +36,9 @@ tests/%-actual.txt: tests/%.class jvm
 	./jvm $< > $@
 
 %-result: tests/%-expected.txt tests/%-actual.txt
-	diff -u $^ && echo PASSED test $(@:-result=). || (echo FAILED test $(@:-result=). Aborting.; false)
+	diff -u $^ \
+		&& echo PASSED test $(@:-result=). \
+		|| (echo FAILED test $(@:-result=). Aborting.; false)
 
 clean:
 	rm -f *.o jvm tests/*.txt `find tests -name '*.java' | sed 's/java/class/'`
