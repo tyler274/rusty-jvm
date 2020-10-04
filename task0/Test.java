@@ -4,5 +4,5 @@ public class Test {
         for (int i = 0; i < 64; i++) {
             System.out.println(a << i);
         }
-	}
+    }
 }
