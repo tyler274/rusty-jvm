@@ -1,4 +1,6 @@
 *.class
+!Bitmasks.class
+!Bitshifts.class
 !Locals.class
 !OnePlusTwo.class
 !Part3.class

@@ -3,12 +3,12 @@ CFLAGS = -Wall -Wextra -Werror -fno-sanitize=integer
 TESTS_1 = OnePlusTwo
 TESTS_2 = $(TESTS_1) PrintOnePlusTwo
 TESTS_3 = $(TESTS_2) Constants Part3
-TESTS_4 = $(TESTS_3) Part4
+TESTS_4 = $(TESTS_3) Part4 Bitmasks Bitshifts
 TESTS_5 = $(TESTS_4) Locals MoreLocals
 TESTS_6 = $(TESTS_5) PrintLargeNumbers
 TESTS_7 = $(TESTS_6) Collatz PythagoreanTriplet
 TESTS_8 = $(TESTS_7) Arithmetic CoinSums DigitPermutations FunctionCall \
-	Goldbach IntegerTypes Jumps PalindromeProduct Primes Recursion
+	Goldbach IntegerTypes BitwiseFunctions Jumps PalindromeProduct Primes Recursion
 
 test: test8
 test1: $(TESTS_1:=-result)
