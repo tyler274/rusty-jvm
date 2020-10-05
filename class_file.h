@@ -10,10 +10,10 @@
  * we use the same names although they don't follow the code quality guidelines.
  */
 
-#include <stdint.h>
+#include <inttypes.h>
 
 /* Integer type aliases used in the JVM documentation.
- * You may use these aliases or the corresponding stdint.h types. */
+ * You may use these aliases or the corresponding inttypes.h types. */
 typedef uint8_t u1;
 typedef uint16_t u2;
 typedef uint32_t u4;
