@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+const u4 CLASS_MAGIC = 0xCAFEBABE;
 const u2 IS_STATIC = 0x0008;
 
 /*
@@ -80,6 +81,7 @@ method_t *find_method_from_index(u2 index, const class_file_t *class) {
 class_header_t get_class_header(FILE *class_file) {
     class_header_t header;
     header.magic = read_u4(class_file);
+    assert(header.magic == CLASS_MAGIC);
     header.major_version = read_u2(class_file);
     header.minor_version = read_u2(class_file);
     return header;
