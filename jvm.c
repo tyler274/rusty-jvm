@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "read_class.h"
 
@@ -70,6 +71,8 @@ int main(int argc, char *argv[]) {
     /* In a real JVM, locals[0] would contain a reference to String[] args.
      * But since TeenyJVM doesn't support Objects, we leave it uninitialized. */
     int32_t locals[main_method->code.max_locals];
+    // Initialize all local variables to 0
+    memset(locals, 0, sizeof(locals));
     optional_int_t result = execute(main_method, locals, class);
     assert(!result.has_value && "main() should return void");
 
