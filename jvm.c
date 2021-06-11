@@ -88,5 +88,5 @@ int main(int argc, char *argv[]) {
     free_class(class);
 
     // Free the heap
-    free_heap(heap);
+    heap_free(heap);
 }
