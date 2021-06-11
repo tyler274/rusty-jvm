@@ -4,7 +4,7 @@
 #include <inttypes.h>
 
 /**
- * Represents the array of heap-allocated pointers.
+ * Represents the array of pointers to heap-allocated int32_t arrays.
  */
 typedef struct heap heap_t;
 
@@ -17,7 +17,7 @@ heap_t *heap_init();
  * Add a pointer to the heap and get a reference. For simplification, the
  * reference is an index into a generic heap-allocated array.
  *
- * @param ptr Pointer to add to the heap.
+ * @param ptr Pointer of an int32_t array to add to the heap.
  * @returns A "reference" to the pointer.
  */
 int32_t heap_add(heap_t *heap, int32_t *ptr);
@@ -26,14 +26,13 @@ int32_t heap_add(heap_t *heap, int32_t *ptr);
  * Retrieve a pointer from the heap.
  *
  * @param ref A "reference".
- * @returns A pointer from the heap.
+ * @returns A pointer to an int32_t array from the heap.
  */
 int32_t *heap_get(heap_t *heap, int32_t ref);
 
 /**
- * Frees elements of the heap-allocated pointers. This does not properly free
- * if the elements cannot be freed through free. However, you shouldn't need to
- * make anything that does not satisfy this property.
+ * Frees elements of the heap-allocated int32_t arrays.
+ *
  * @param heap array of heap-allocated pointers
  */
 void heap_free(heap_t *heap);
