@@ -36,6 +36,6 @@ void *heap_get(heap_t *heap, int32_t ref);
  * make anything that does not satisfy this property.
  * @param heap array of heap-allocated pointers
  */
-void free_heap(heap_t *heap);
+void heap_free(heap_t *heap);
 
 #endif
