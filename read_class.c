@@ -53,7 +53,19 @@ CONSTANT_NameAndType_info *get_method_name_and_type(cp_info *constant_pool, u2 i
 
 u2 get_number_of_parameters(const method_t *method) {
     // Type descriptors will always have the length ( + #params + ) + return type
-    return strlen(method->descriptor) - 3;
+    char *end = strchr(method->descriptor, ')');
+    char *start = strchr(method->descriptor, '(');
+
+    u2 params = 0;
+
+    for (start++; start < end; start++) {
+        if (start[0] == '[') {
+            start++;
+        }
+        params++;
+    }
+
+    return params;
 }
 
 method_t *find_method(const char *name, const char *descriptor,
