@@ -20,7 +20,7 @@ heap_t *heap_init();
  * @param ptr Pointer to add to the heap.
  * @returns A "reference" to the pointer.
  */
-int32_t heap_add(heap_t *heap, void *ptr);
+int32_t heap_add(heap_t *heap, int32_t *ptr);
 
 /**
  * Retrieve a pointer from the heap.
@@ -28,7 +28,7 @@ int32_t heap_add(heap_t *heap, void *ptr);
  * @param ref A "reference".
  * @returns A pointer from the heap.
  */
-void *heap_get(heap_t *heap, int32_t ref);
+int32_t *heap_get(heap_t *heap, int32_t ref);
 
 /**
  * Frees elements of the heap-allocated pointers. This does not properly free

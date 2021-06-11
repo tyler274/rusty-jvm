@@ -17,15 +17,15 @@ heap_t *heap_init() {
     return heap;
 }
 
-int32_t heap_add(heap_t *heap, void *ptr) {
-    heap->ptr = realloc(heap->ptr, (heap->count + 1) * sizeof(void *));
+int32_t heap_add(heap_t *heap, int32_t *ptr) {
+    heap->ptr = realloc(heap->ptr, (heap->count + 1) * sizeof(int32_t *));
     heap->ptr[heap->count] = ptr;
     int32_t temp = heap->count;
     heap->count += 1;
     return temp;
 }
 
-void *heap_get(heap_t *heap, int32_t ref) {
+int32_t *heap_get(heap_t *heap, int32_t ref) {
     return heap->ptr[ref];
 }
 
