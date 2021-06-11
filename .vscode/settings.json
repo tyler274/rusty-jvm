@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "heap.h": "c"
+        "heap.h": "c",
+        "inttypes.h": "c"
     }
 }
