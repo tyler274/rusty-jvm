@@ -9,8 +9,10 @@ TESTS_6 = $(TESTS_5) PrintLargeNumbers
 TESTS_7 = $(TESTS_6) Collatz PythagoreanTriplet
 TESTS_8 = $(TESTS_7) Arithmetic CoinSums DigitPermutations FunctionCall \
 	Goldbach IntegerTypes BitwiseFunctions Jumps PalindromeProduct Primes Recursion
+TESTS_9 = $(TESTS_8) IntArraysPart1 IntArraysPart2 IntArraysPart3 IntArraysPart4 \
+	IntArraysPart5 CoinSumsAlternate MergeSort SieveOfErathosthenes
 
-test: test8
+test: test9
 test1: $(TESTS_1:=-result)
 test2: $(TESTS_2:=-result)
 test3: $(TESTS_3:=-result)
@@ -19,11 +21,12 @@ test5: $(TESTS_5:=-result)
 test6: $(TESTS_6:=-result)
 test7: $(TESTS_7:=-result)
 test8: $(TESTS_8:=-result)
+test9: $(TESTS_9:=-result)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-jvm: jvm.o read_class.o
+jvm: jvm.o read_class.o heap.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 tests/%.class: tests/%.java
