@@ -7,6 +7,7 @@
  * has the full list of JVM instructions and their specifications.
  */
 typedef enum {
+    i_nop = 0x0,
     i_iconst_m1 = 0x2,
     i_iconst_0 = 0x3,
     i_iconst_1 = 0x4,
@@ -18,15 +19,28 @@ typedef enum {
     i_sipush = 0x11,
     i_ldc = 0x12,
     i_iload = 0x15,
+    i_aload = 0x19,
     i_iload_0 = 0x1a,
     i_iload_1 = 0x1b,
     i_iload_2 = 0x1c,
     i_iload_3 = 0x1d,
+    i_aload_0 = 0x2a,
+    i_aload_1 = 0x2b,
+    i_aload_2 = 0x2c,
+    i_aload_3 = 0x2d,
+    i_iaload = 0x2e,
     i_istore = 0x36,
+    i_astore = 0x3a,
     i_istore_0 = 0x3b,
     i_istore_1 = 0x3c,
     i_istore_2 = 0x3d,
     i_istore_3 = 0x3e,
+    i_astore_0 = 0x4b,
+    i_astore_1 = 0x4c,
+    i_astore_2 = 0x4d,
+    i_astore_3 = 0x4e,
+    i_iastore = 0x4f,
+    i_dup = 0x59,
     i_iadd = 0x60,
     i_isub = 0x64,
     i_imul = 0x68,
@@ -54,10 +68,13 @@ typedef enum {
     i_if_icmple = 0xa4,
     i_goto = 0xa7,
     i_ireturn = 0xac,
+    i_areturn = 0xb0,
     i_return = 0xb1,
     i_getstatic = 0xb2,
     i_invokevirtual = 0xb6,
-    i_invokestatic = 0xb8
+    i_invokestatic = 0xb8,
+    i_newarray = 0xbc,
+    i_arraylength = 0xbe
 } jvm_instruction_t;
 
 #endif /* JVM_H */
