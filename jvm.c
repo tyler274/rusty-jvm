@@ -125,8 +125,10 @@ __always_inline void bipush_helper(stack_t *stack, size_t *program_counter,
     // pushes the operand onto the stack.
     // remember the second program_counter increment here
     int32_t value = 0;
-    fprintf(stderr, "%08x", method->code.code[(*program_counter)]);
-    value = (signed int) ((signed char) method->code.code[(*program_counter)++]);
+    // fprintf(stderr, "%08x", method-> code.code[(*program_counter)]);
+
+    // the (signed char) cast is necessary to get negative values.
+    value = (int32_t)((signed char) method->code.code[(*program_counter)++]);
     int32_t push_result = stack_push(stack, value);
     assert(push_result == 1);
 }
@@ -150,7 +152,7 @@ __always_inline void sipush_helper(stack_t *stack, size_t *program_counter,
 }
 
 __always_inline void iadd_helper(stack_t *stack, size_t *program_counter) {
-    // add instruction
+    // addition instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
     int32_t first_operand = 0;
@@ -164,6 +166,200 @@ __always_inline void iadd_helper(stack_t *stack, size_t *program_counter) {
     assert(pop_result == 1);
     // push the result back on to the stack.
     push_result = stack_push(stack, first_operand + second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void isub_helper(stack_t *stack, size_t *program_counter) {
+    // subtraction instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand - second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void imul_helper(stack_t *stack, size_t *program_counter) {
+    // multiplication instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand * second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void idiv_helper(stack_t *stack, size_t *program_counter) {
+    // multiplication instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand / second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void irem_helper(stack_t *stack, size_t *program_counter) {
+    // remainder instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand % second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void ineg_helper(stack_t *stack, size_t *program_counter) {
+    // negation instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, -first_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void ishl_helper(stack_t *stack, size_t *program_counter) {
+    // signed bit shift left instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand << second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void ishr_helper(stack_t *stack, size_t *program_counter) {
+    // signed bit shift right instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand >> second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void iushr_helper(stack_t *stack, size_t *program_counter) {
+    // unsigned bit shift right
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, ((unsigned) first_operand) >> second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void iand_helper(stack_t *stack, size_t *program_counter) {
+    // bit-wise AND instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand & second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void ior_helper(stack_t *stack, size_t *program_counter) {
+    // bit-wise OR instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand | second_operand);
+    assert(push_result == 1);
+}
+
+__always_inline void ixor_helper(stack_t *stack, size_t *program_counter) {
+    // bit-wise XOR instruction
+    // increment the program counter by one, as add doesn't take any operands
+    (*program_counter)++;
+    int32_t first_operand = 0;
+    int32_t second_operand = 0;
+    int32_t pop_result, push_result;
+    // pop our second operand (pushed to the stack last).
+    pop_result = stack_pop(stack, &second_operand);
+    assert(pop_result == 1);
+    // pop our first operand
+    pop_result = stack_pop(stack, &first_operand);
+    assert(pop_result == 1);
+    // push the result back on to the stack.
+    push_result = stack_push(stack, first_operand ^ second_operand);
     assert(push_result == 1);
 }
 
@@ -242,6 +438,50 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
         }
         case i_iadd: {
             iadd_helper(stack, program_counter);
+            break;
+        }
+        case i_isub: {
+            isub_helper(stack, program_counter);
+            break;
+        }
+        case i_imul: {
+            imul_helper(stack, program_counter);
+            break;
+        }
+        case i_idiv: {
+            idiv_helper(stack, program_counter);
+            break;
+        }
+        case i_irem: {
+            irem_helper(stack, program_counter);
+            break;
+        }
+        case i_ineg: {
+            ineg_helper(stack, program_counter);
+            break;
+        }
+        case i_ishl: {
+            ishl_helper(stack, program_counter);
+            break;
+        }
+        case i_ishr: {
+            ishr_helper(stack, program_counter);
+            break;
+        }
+        case i_iushr: {
+            iushr_helper(stack, program_counter);
+            break;
+        }
+        case i_iand: {
+            iand_helper(stack, program_counter);
+            break;
+        }
+        case i_ior: {
+            ior_helper(stack, program_counter);
+            break;
+        }
+        case i_ixor: {
+            ixor_helper(stack, program_counter);
             break;
         }
         case i_return: {
