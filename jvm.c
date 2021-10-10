@@ -63,7 +63,7 @@ void stack_free(stack_t *stack) {
  */
 int stack_push(stack_t *stack, int32_t value) {
     if (stack->top + 1 < stack->size) {
-        stack->contents[++stack->top] = value;
+        stack->contents[++(stack->top)] = value;
         // return 1 if the value was added to the stack
         return 1;
     }
@@ -92,13 +92,16 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
                    int32_t *locals, class_file_t *class, heap_t *heap) {
     switch ((jvm_instruction_t) method->code.code[*program_counter]) {
         case i_bipush: {
-            *program_counter += 1;
-            int push_result = stack_push(stack, method->code.code[*program_counter]);
+            // increment program counter by a total of two, one for the push instruction
+            // itself, and another for the operand after pushing it to the stack.
+            (*program_counter)++;
+            int push_result = stack_push(stack, method->code.code[(*program_counter)++]);
             assert(push_result == 1);
             /* code */
             break;
         }
         case i_iadd: {
+            (*program_counter)++;
             int32_t first_operand, second_operand;
             int pop_result, push_result;
             pop_result = stack_pop(stack, &second_operand);
