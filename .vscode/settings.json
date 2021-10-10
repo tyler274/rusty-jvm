@@ -2,5 +2,12 @@
     "files.associations": {
         "heap.h": "c",
         "inttypes.h": "c"
-    }
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/tport/cs24/project01-tport",
+            "binaryPath": "/home/tport/cs24/project01-tport/jvm",
+            "binaryArgs": []
+        }
+    ]
 }
