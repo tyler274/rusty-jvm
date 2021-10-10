@@ -151,6 +151,59 @@ __always_inline void sipush_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
+__always_inline void iload_helper(stack_t *stack, size_t *program_counter,
+                                  method_t *method, int32_t *locals) {
+    // Loads a local and pushes it onto the stack
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+
+    u1 first_operand = 0;
+    // remember the second program_counter increment here
+    first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    int32_t push_result = stack_push(stack, locals[(size_t) first_operand]);
+    assert(push_result == 1);
+}
+
+__always_inline void iload_n_helper(jvm_instruction_t opcode, stack_t *stack,
+                                    size_t *program_counter, int32_t *locals) {
+    // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+    size_t locals_index = opcode - i_iload_0;
+    int32_t push_result = stack_push(stack, locals[locals_index]);
+    assert(push_result == 1);
+}
+
+__always_inline void istore_helper(stack_t *stack, size_t *program_counter,
+                                   method_t *method, int32_t *locals) {
+    // stores an unsigned byte from the stack in the locals array at the place given by
+    // the first operand.
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+
+    u1 first_operand = 0;
+    // remember the second program_counter increment here
+    first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    int32_t value = 0;
+    int32_t pop_result = stack_pop(stack, &value);
+    assert(pop_result == 1);
+
+    locals[first_operand] = value;
+}
+
+__always_inline void istore_n_helper(jvm_instruction_t opcode, stack_t *stack,
+                                     size_t *program_counter, int32_t *locals) {
+    // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+    size_t locals_index = (size_t) opcode - i_istore_0;
+    int32_t value = 0;
+    int32_t pop_result = stack_pop(stack, &value);
+    assert(pop_result == 1);
+
+    locals[locals_index] = value;
+}
+
 __always_inline void iadd_helper(stack_t *stack, size_t *program_counter) {
     // addition instruction
     // increment the program counter by one, as add doesn't take any operands
@@ -363,6 +416,21 @@ __always_inline void ixor_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
+__always_inline void iinc_helper(size_t *program_counter, method_t *method,
+                                 int32_t *locals) {
+    // increment program counter by a total of three, one for the iinc instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    (*program_counter)++;
+    u1 first_operand = 0;
+    int32_t second_operand = 0;
+    // remember the second program_counter increment here
+    first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    // remember the third program_counter increment here
+    second_operand = (int32_t)((signed char) method->code.code[(*program_counter)++]);
+
+    locals[(size_t) first_operand] += (int32_t) second_operand;
+}
+
 __always_inline void return_helper(size_t *program_counter, method_t *method) {
     // return by setting the program counter to the end of the instruction list,
     // thus breaking the while loop
@@ -436,6 +504,46 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
             sipush_helper(stack, program_counter, method);
             break;
         }
+        case i_iload: {
+            iload_helper(stack, program_counter, method, locals);
+            break;
+        }
+        case i_iload_0: {
+            iload_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
+        case i_iload_1: {
+            iload_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
+        case i_iload_2: {
+            iload_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
+        case i_iload_3: {
+            iload_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
+        case i_istore: {
+            istore_helper(stack, program_counter, method, locals);
+            break;
+        }
+        case i_istore_0: {
+            istore_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
+        case i_istore_1: {
+            istore_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
+        case i_istore_2: {
+            istore_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
+        case i_istore_3: {
+            istore_n_helper(opcode, stack, program_counter, locals);
+            break;
+        }
         case i_iadd: {
             iadd_helper(stack, program_counter);
             break;
@@ -482,6 +590,10 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
         }
         case i_ixor: {
             ixor_helper(stack, program_counter);
+            break;
+        }
+        case i_iinc: {
+            iinc_helper(program_counter, method, locals);
             break;
         }
         case i_return: {
