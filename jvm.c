@@ -74,6 +74,14 @@ void stack_free(stack_t *stack) {
     free(stack);
 }
 
+void stack_print(stack_t *stack) {
+    fprintf(stderr, "Printing Stack: \n [");
+    for (size_t i = 0; i < stack->size; i++) {
+        fprintf(stderr, "%d, ", stack->contents[i]);
+    }
+    fprintf(stderr, "]\n");
+}
+
 /**
  * Helper function to push the stack.
  */
@@ -85,7 +93,8 @@ int32_t stack_push(stack_t *stack, int32_t value) {
     }
     else {
         // Oops Stack Overflow
-        fprintf(stderr, "Error: Stack Overflow, value: %d", value);
+        fprintf(stderr, "Error: Stack Overflow, value: %d\n", value);
+        stack_print(stack);
         return 0;
     }
 }
@@ -101,7 +110,8 @@ int32_t stack_pop(stack_t *stack, int32_t *value) {
     else {
         // return 0 if the stack is empty
         // Stack Underflow;
-        fprintf(stderr, "Error: Stack Underflow");
+        fprintf(stderr, "Error: Stack Underflow\n");
+        stack_print(stack);
         return 0;
     }
 }
@@ -149,6 +159,43 @@ __always_inline void sipush_helper(stack_t *stack, size_t *program_counter,
     result = (((signed short) first_operand << 8) | second_operand);
     int32_t push_result = stack_push(stack, result);
     assert(push_result == 1);
+}
+
+__always_inline void constant_pool_helper(stack_t *stack, cp_info *pool_const) {
+    assert(pool_const->info != NULL);
+
+    switch (pool_const->tag) {
+        case CONSTANT_Integer: {
+            int32_t push_result = stack_push(
+                stack, (int32_t)((CONSTANT_Integer_info *) pool_const->info)->bytes);
+            assert(push_result == 1);
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
+__always_inline void ldc_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                                class_file_t *class) {
+    // load constant instruction
+    // increment program counter by a total of two, one for the ldc instruction
+    // itself, and another for the operand designating what index we should use to select
+    // the constant we want to load.
+    (*program_counter)++;
+
+    size_t pool_index = 1;
+    // the (unsigned char) cast is necessary to remember the operand in the code is
+    // unsigned. remember the second program_counter increment here
+    pool_index = (size_t)((unsigned char) method->code.code[(*program_counter)++]);
+    cp_info pool_const = class->constant_pool[pool_index - 1];
+    if (class->constant_pool[pool_index - 1].info != NULL) {
+        constant_pool_helper(stack, &pool_const);
+    }
+
+    // int32_t push_result = stack_push(stack, class->constant_pool[pool_index - 1]);
+    // assert(push_result == 1);
 }
 
 __always_inline void iload_helper(stack_t *stack, size_t *program_counter,
@@ -426,6 +473,8 @@ __always_inline void iinc_helper(size_t *program_counter, method_t *method,
     // remember the second program_counter increment here
     first_operand = (unsigned char) method->code.code[(*program_counter)++];
     // remember the third program_counter increment here
+    // just like `bipush` and `sipush` we need to cast the second operand to a `signed
+    // char` before casting to an int to get proper handling of negative values.
     second_operand = (int32_t)((signed char) method->code.code[(*program_counter)++]);
 
     locals[(size_t) first_operand] += (int32_t) second_operand;
@@ -502,6 +551,10 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
         }
         case i_sipush: {
             sipush_helper(stack, program_counter, method);
+            break;
+        }
+        case i_ldc: {
+            ldc_helper(stack, program_counter, method, class);
             break;
         }
         case i_iload: {

@@ -119,5 +119,51 @@
             "preLaunchTask": "make jvm",
             "miDebuggerPath": "/usr/bin/gdb"
         },
+        {
+            "name": "(GDB) jvm test6",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/jvm",
+            "args": [
+                "${workspaceFolder}/tests/PrintLargeNumbers.class"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make jvm",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "(GDB) jvm test7 Collatz",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/jvm",
+            "args": [
+                "${workspaceFolder}/tests/Collatz.class"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make jvm",
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
     ]
 }

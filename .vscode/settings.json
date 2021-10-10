@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "heap.h": "c",
-        "inttypes.h": "c"
+        "inttypes.h": "c",
+        "stdlib.h": "c"
     },
     "makefile.launchConfigurations": [
         {
