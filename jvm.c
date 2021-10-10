@@ -21,6 +21,7 @@ const char MAIN_METHOD[] = "main";
 const char MAIN_DESCRIPTOR[] = "([Ljava/lang/String;)V";
 
 const int32_t null_four_bytes = 0x0000;
+const size_t two_operand_offset = 2;
 
 /**
  * Represents the return value of a Java method: either void or an int or a reference.
@@ -34,15 +35,18 @@ typedef struct {
     int32_t value;
 } optional_value_t;
 
+// simple stack implementation
 typedef struct {
     size_t size;
     size_t top;
     int32_t *contents;
 } stack_t;
 
+// init a stack struct in memory and return a pointer to it
 stack_t *stack_init() {
     // The stack  array is initially allocated to hold zero elements.
     stack_t *stack = calloc(1, sizeof(stack_t));
+    // atm we use the heap to manage memory for stacks
     stack->contents = NULL;
     stack->size = 0;
     stack->top = 0;
@@ -61,7 +65,7 @@ void stack_free(stack_t *stack) {
 /**
  * Helper function to push the stack.
  */
-int stack_push(stack_t *stack, int32_t value) {
+int32_t stack_push(stack_t *stack, int32_t value) {
     if (stack->top + 1 < stack->size) {
         stack->contents[++(stack->top)] = value;
         // return 1 if the value was added to the stack
@@ -69,11 +73,12 @@ int stack_push(stack_t *stack, int32_t value) {
     }
     else {
         // Oops Stack Overflow
+        fprintf(stderr, "Error: Stack Overflow, value: %d", value);
         return 0;
     }
 }
 
-int stack_pop(stack_t *stack, int32_t *value) {
+int32_t stack_pop(stack_t *stack, int32_t *value) {
     if (stack->top > 0) {
         *value = stack->contents[stack->top];
         stack->contents[stack->top] = null_four_bytes;
@@ -84,6 +89,7 @@ int stack_pop(stack_t *stack, int32_t *value) {
     else {
         // return 0 if the stack is empty
         // Stack Underflow;
+        fprintf(stderr, "Error: Stack Underflow");
         return 0;
     }
 }
@@ -91,37 +97,67 @@ int stack_pop(stack_t *stack, int32_t *value) {
 void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
                    int32_t *locals, class_file_t *class, heap_t *heap) {
     switch ((jvm_instruction_t) method->code.code[*program_counter]) {
+        case i_nop: {
+            // not implemented but its a no-op anyway
+            break;
+        }
         case i_bipush: {
             // increment program counter by a total of two, one for the push instruction
             // itself, and another for the operand after pushing it to the stack.
             (*program_counter)++;
-            int push_result = stack_push(stack, method->code.code[(*program_counter)++]);
+            // remember the second increment here
+            int32_t push_result =
+                stack_push(stack, method->code.code[(*program_counter)++]);
             assert(push_result == 1);
-            /* code */
+
             break;
         }
         case i_iadd: {
+            // add instruction
+            // increment the program counter by one, as add doesn't take any operands
             (*program_counter)++;
-            int32_t first_operand, second_operand;
-            int pop_result, push_result;
+            int32_t first_operand, second_operand, pop_result, push_result;
             pop_result = stack_pop(stack, &second_operand);
             assert(pop_result == 1);
             pop_result = stack_pop(stack, &first_operand);
             assert(pop_result == 1);
             push_result = stack_push(stack, first_operand + second_operand);
             assert(push_result == 1);
-            /* code */
+
             break;
         }
         case i_return: {
-            /* code */
+            // return by setting the program counter to the end of the instruction list,
+            // thus breaking the while loop
             *program_counter = method->code.code_length;
             break;
         }
 
-        case i_nop: {
+        case i_getstatic: {
+            // increment the program counter for the `getstatic` opcode itself.
+            (*program_counter)++;
+
+            // increment it past the next two opcodes, for a total incrementation for each
+            // use of this instruction of three, per the spec.
+            (*program_counter) += two_operand_offset;
+
             break;
         }
+
+        case i_invokevirtual: {
+            // invokevirtual b1 b2
+            // Pops and prints the top value of the operand stack followed by a newline
+            // character. Then, moves the program counter past b2 (i.e., increments it by
+            // three).
+            (*program_counter)++;
+
+            int32_t pop_result, value;
+            pop_result = stack_pop(stack, &value);
+            fprintf(stdout, "%d\n", value);
+            (*program_counter) += two_operand_offset;
+            break;
+        }
+
         default: {
             break;
         }
