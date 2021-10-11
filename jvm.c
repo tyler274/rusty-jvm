@@ -74,20 +74,43 @@ void stack_free(stack_t *stack) {
     free(stack);
 }
 
+/**
+ * Helper function to print out the stack
+ */
 void stack_print(stack_t *stack) {
-    fprintf(stderr, "Printing Stack: \n [");
+    fprintf(stderr, "Printing Stack: size=%zu, top=%zu\n [", stack->size, stack->top);
     for (size_t i = 0; i < stack->size; i++) {
         fprintf(stderr, "%d, ", stack->contents[i]);
     }
     fprintf(stderr, "]\n");
 }
 
+bool stack_is_empty(stack_t *stack) {
+    if (stack->top == 0) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool stack_is_full(stack_t *stack) {
+    if (stack->top >= stack->size) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 /**
  * Helper function to push the stack.
  */
 int32_t stack_push(stack_t *stack, int32_t value) {
-    if (stack->top + 1 < stack->size) {
-        stack->contents[++(stack->top)] = value;
+    if (!stack_is_full(stack)) {
+        stack->contents[stack->top] = value;
+        // if stack->top == 0
+        stack->top += 1;
         // return 1 if the value was added to the stack
         return 1;
     }
@@ -100,9 +123,9 @@ int32_t stack_push(stack_t *stack, int32_t value) {
 }
 
 int32_t stack_pop(stack_t *stack, int32_t *value) {
-    if (stack->top > 0) {
-        *value = stack->contents[stack->top];
-        stack->contents[stack->top] = NULL_FOUR_BYTES;
+    if (!stack_is_empty(stack)) {
+        (*value) = stack->contents[stack->top - 1];
+        stack->contents[stack->top - 1] = NULL_FOUR_BYTES;
         stack->top--;
         // return 1 if something is popped off
         return 1;
@@ -161,13 +184,16 @@ __always_inline void sipush_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
+// switches on the constant type to determine how we should process pool_const's info
+// field.
 __always_inline void constant_pool_helper(stack_t *stack, cp_info *pool_const) {
     assert(pool_const->info != NULL);
 
     switch (pool_const->tag) {
         case CONSTANT_Integer: {
-            int32_t push_result = stack_push(
-                stack, (int32_t)((CONSTANT_Integer_info *) pool_const->info)->bytes);
+            int32_t cast_int =
+                (int32_t)((CONSTANT_Integer_info *) pool_const->info)->bytes;
+            int32_t push_result = stack_push(stack, cast_int);
             assert(push_result == 1);
             break;
         }
@@ -480,6 +506,325 @@ __always_inline void iinc_helper(size_t *program_counter, method_t *method,
     locals[(size_t) first_operand] += (int32_t) second_operand;
 }
 
+const int32_t JUMP_TWO_OPCODES_OFFSET = -3;
+
+__always_inline int32_t jump_offset_helper(size_t *program_counter, method_t *method) {
+    u1 first_operand = 0;
+    u1 second_operand = 0;
+    // remember the second program_counter increment here
+    // first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    // remember the third program_counter increment here
+    // just like `bipush` and `sipush` we need to cast the second operand to an `unsigned
+    // char`.
+    // second_operand = (unsigned char) method->code.code[(*program_counter)++];
+    second_operand = (unsigned char) method->code.code[(*program_counter)++];
+
+    int32_t jump_offset = 0;
+    jump_offset =
+        (((signed int) first_operand << 8) | second_operand) + JUMP_TWO_OPCODES_OFFSET;
+
+    fprintf(stderr,
+            "Jump Debugging Assistant\nprogram_counter: %zu\nfirst operand byte: "
+            "%x\nsecond operand byte: "
+            "%x\njump_offset: %d\nprogram_counter after offset: %zu\n\n",
+            *program_counter, first_operand, second_operand, jump_offset,
+            (*program_counter) + jump_offset);
+    return jump_offset;
+}
+
+__always_inline void jump_one_op_helper(stack_t *stack, size_t *program_counter,
+                                        method_t *method, int32_t *first_stack_operand,
+                                        int32_t *jump_offset) {
+    (*program_counter)++;
+    *jump_offset = jump_offset_helper(program_counter, method);
+
+    int32_t pop_result = 0;
+    // pop the first stack operand off the top of the stack
+    pop_result = stack_pop(stack, first_stack_operand);
+    assert(pop_result == 1);
+}
+
+__always_inline void jump_two_ops_helper(stack_t *stack, size_t *program_counter,
+                                         method_t *method, int32_t *first_stack_operand,
+                                         int32_t *second_stack_operand,
+                                         int32_t *jump_offset) {
+    (*program_counter)++;
+    *jump_offset = jump_offset_helper(program_counter, method);
+
+    int32_t pop_result = 0;
+    // pop the second stack operand off the top of the stack
+    pop_result = stack_pop(stack, second_stack_operand);
+    assert(pop_result == 1);
+    // pop the first stack operand off the top of the stack
+    pop_result = stack_pop(stack, first_stack_operand);
+    assert(pop_result == 1);
+}
+
+__always_inline void ifeq_helper(stack_t *stack, size_t *program_counter,
+                                 method_t *method) {
+    // `if equal to zero, then jump` instruction
+    // increment program counter by a total of three, one for the ifeq instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    jump_offset = 0;
+    jump_one_op_helper(stack, program_counter, method, &first_stack_operand,
+                       &jump_offset);
+
+    // We test if the popped value is 0, and if it is we increment the program counter by
+    // the signed offset given by the fusion of the first and second operands.
+    if (first_stack_operand == 0) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void ifne_helper(stack_t *stack, size_t *program_counter,
+                                 method_t *method) {
+    // `if not equal to 0, then jump` instruction
+    // increment program counter by a total of three, one for the ifeq instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    jump_offset = 0;
+    jump_one_op_helper(stack, program_counter, method, &first_stack_operand,
+                       &jump_offset);
+
+    // We test if the popped value is NOT EQUAL to 0, and if it is we increment the
+    // program counter by the signed offset given by the fusion of the first and second
+    // operands.
+    if (first_stack_operand != 0) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void iflt_helper(stack_t *stack, size_t *program_counter,
+                                 method_t *method) {
+    // `if less than zero, then jump` instruction
+    // increment program counter by a total of three, one for the ifeq instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    jump_offset = 0;
+    jump_one_op_helper(stack, program_counter, method, &first_stack_operand,
+                       &jump_offset);
+
+    // We test if the popped value is LESS THAN 0, and if it is we increment the
+    // program counter by the signed offset given by the fusion of the first and second
+    // operands.
+    if (first_stack_operand < 0) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void ifge_helper(stack_t *stack, size_t *program_counter,
+                                 method_t *method) {
+    // `if greater than or equal to zero, then jump` instruction
+    // increment program counter by a total of three, one for the ifeq instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    jump_offset = 0;
+    jump_one_op_helper(stack, program_counter, method, &first_stack_operand,
+                       &jump_offset);
+
+    // We test if the popped value is GREATER THAN OR EQUAL to 0, and if it is we
+    // increment the program counter by the signed offset given by the fusion of the first
+    // and second operands.
+    if (first_stack_operand >= 0) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void ifgt_helper(stack_t *stack, size_t *program_counter,
+                                 method_t *method) {
+    // `if greater than zero, then jump` instruction
+    // increment program counter by a total of three, one for the ifeq instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    jump_offset = 0;
+    jump_one_op_helper(stack, program_counter, method, &first_stack_operand,
+                       &jump_offset);
+
+    // We test if the popped value is GREATER THAN 0, and if it is we increment the
+    // program counter by the signed offset given by the fusion of the first and second
+    // operands.
+    if (first_stack_operand > 0) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void ifle_helper(stack_t *stack, size_t *program_counter,
+                                 method_t *method) {
+    // `if less than or equal to zero, then jump` instruction
+    // increment program counter by a total of three, one for the ifeq instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    jump_offset = 0;
+    jump_one_op_helper(stack, program_counter, method, &first_stack_operand,
+                       &jump_offset);
+
+    // We test if the popped value is LESS THAN OR EQUAL TO 0, and if it is we increment
+    // the program counter by the signed offset given by the fusion of the first and
+    // second operands.
+    if (first_stack_operand <= 0) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void if_icmpeq_helper(stack_t *stack, size_t *program_counter,
+                                      method_t *method) {
+    // `if the first stack operand (second to the top of the stack) is  equal to the
+    // second stack operand (top of the stack, first to pop), then jump` instruction
+    // increment program counter by a total of three, one for the `if_icmpeq` instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, second_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    second_stack_operand = 0;
+    jump_offset = 0;
+    jump_two_ops_helper(stack, program_counter, method, &first_stack_operand,
+                        &second_stack_operand, &jump_offset);
+
+    // We test if the first stack operand is less than or equal to the second stack
+    // operand, and if it is we increment the program counter by the signed offset given
+    // by the fusion of the first and second operands.
+    if (first_stack_operand == second_stack_operand) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void if_icmpne_helper(stack_t *stack, size_t *program_counter,
+                                      method_t *method) {
+    // `if the first stack operand (second to the top of the stack) is not equal to the
+    // second stack operand (top of the stack, first to pop), then jump` instruction
+    // increment program counter by a total of three, one for the `if_icmpne` instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, second_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    second_stack_operand = 0;
+    jump_offset = 0;
+    jump_two_ops_helper(stack, program_counter, method, &first_stack_operand,
+                        &second_stack_operand, &jump_offset);
+
+    // We test if the first stack operand is less than or equal to the second stack
+    // operand, and if it is we increment the program counter by the signed offset given
+    // by the fusion of the first and second operands.
+    if (first_stack_operand != second_stack_operand) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void if_icmplt_helper(stack_t *stack, size_t *program_counter,
+                                      method_t *method) {
+    // `if the first stack operand (second to the top of the stack) is less than the
+    // second stack operand (top of the stack, first to pop), then jump` instruction
+    // increment program counter by a total of three, one for the `if_icmplt` instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    int32_t first_stack_operand, second_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    second_stack_operand = 0;
+    jump_offset = 0;
+    jump_two_ops_helper(stack, program_counter, method, &first_stack_operand,
+                        &second_stack_operand, &jump_offset);
+
+    // We test if the first stack operand is less than or equal to the second stack
+    // operand, and if it is we increment the program counter by the signed offset given
+    // by the fusion of the first and second operands.
+    if (first_stack_operand < second_stack_operand) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void if_icmpge_helper(stack_t *stack, size_t *program_counter,
+                                      method_t *method) {
+    // `if the first stack operand (second to the top of the stack) is greater than or
+    // equal to the second stack operand (top of the stack, first to pop), then jump`
+    // instruction increment program counter by a total of three, one for the `if_icmpge`
+    // instruction itself, and two for the two operands after pushing them on to the
+    // stack.
+    int32_t first_stack_operand, second_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    second_stack_operand = 0;
+    jump_offset = 0;
+    jump_two_ops_helper(stack, program_counter, method, &first_stack_operand,
+                        &second_stack_operand, &jump_offset);
+
+    // We test if the first stack operand is less than or equal to the second stack
+    // operand, and if it is we increment the program counter by the signed offset
+    // given by the fusion of the first and second operands.
+    if (first_stack_operand >= second_stack_operand) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void if_icmpgt_helper(stack_t *stack, size_t *program_counter,
+                                      method_t *method) {
+    // `if the first stack operand (second to the top of the stack) is greater than
+    // the second stack operand (top of the stack, first to pop), then jump`
+    // instruction increment program counter by a total of three, one for the if_icmpgt
+    // instruction itself, and two for the two operands after pushing them on to the
+    // stack.
+    int32_t first_stack_operand, second_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    second_stack_operand = 0;
+    jump_offset = 0;
+    jump_two_ops_helper(stack, program_counter, method, &first_stack_operand,
+                        &second_stack_operand, &jump_offset);
+
+    // We test if the first stack operand is greater than the second stack
+    // operand, and if it is we increment the program counter by the signed offset given
+    // by the fusion of the first and second operands.
+    if (first_stack_operand > second_stack_operand) {
+        (*program_counter) += jump_offset;
+    }
+}
+__always_inline void if_icmple_helper(stack_t *stack, size_t *program_counter,
+                                      method_t *method) {
+    // `if the first stack operand (second to the top of the stack) is less than or equal
+    // to the second stack operand (top of the stack, first to pop), then jump`
+    // instruction increment program counter by a total of three, one for the if_icmple
+    // instruction itself, and two for the two operands after pushing them on to the
+    // stack.
+    int32_t first_stack_operand, second_stack_operand, jump_offset;
+    first_stack_operand = 0;
+    second_stack_operand = 0;
+    jump_offset = 0;
+    jump_two_ops_helper(stack, program_counter, method, &first_stack_operand,
+                        &second_stack_operand, &jump_offset);
+
+    // We test if the first stack operand is less than or equal to the second stack
+    // operand, and if it is we increment the program counter by the signed offset given
+    // by the fusion of the first and second operands.
+    if (first_stack_operand <= second_stack_operand) {
+        (*program_counter) += jump_offset;
+    }
+}
+
+__always_inline void goto_helper(size_t *program_counter, method_t *method) {
+    // goto instruction, increments the program counter to jump to a specific part of the
+    // method's code.
+    // increment program counter by a total of three, one for the ifeq instruction
+    // itself, and two for the two operands after pushing them on to the stack.
+    // (*program_counter)++;
+    u1 first_operand = 0;
+    u1 second_operand = 0;
+    // remember the second program_counter increment here
+    // first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    first_operand = (unsigned char) method->code.code[(*program_counter) + 1];
+    // remember the third program_counter increment here
+    // just like `bipush` and `sipush` we need to cast the second operand to an `unsigned
+    // char`.
+    // second_operand = (unsigned char) method->code.code[(*program_counter)++];
+    second_operand = (unsigned char) method->code.code[(*program_counter) + 2];
+
+    // We increment the
+    // program counter by the signed offset given by the fusion of the first and second
+    // operands.
+    (*program_counter) += (((signed short) first_operand << 8) | second_operand);
+}
+
 __always_inline void return_helper(size_t *program_counter, method_t *method) {
     // return by setting the program counter to the end of the instruction list,
     // thus breaking the while loop
@@ -514,9 +859,10 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
                    int32_t *locals, class_file_t *class, heap_t *heap) {
     jvm_instruction_t opcode = (jvm_instruction_t) method->code.code[*program_counter];
     switch (opcode) {
-        case i_nop: { // not implemented but its a no-op anyway
-            break;
-        }
+        // case i_nop: {
+        //     (*program_counter)++;
+        //     break;
+        // }
         case i_iconst_m1: {
             iconst_helper(opcode, stack, program_counter);
             break;
@@ -647,6 +993,58 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
         }
         case i_iinc: {
             iinc_helper(program_counter, method, locals);
+            break;
+        }
+        case i_ifeq: {
+            ifeq_helper(stack, program_counter, method);
+            break;
+        }
+        case i_ifne: {
+            ifne_helper(stack, program_counter, method);
+            break;
+        }
+        case i_iflt: {
+            iflt_helper(stack, program_counter, method);
+            break;
+        }
+        case i_ifge: {
+            ifge_helper(stack, program_counter, method);
+            break;
+        }
+        case i_ifgt: {
+            ifgt_helper(stack, program_counter, method);
+            break;
+        }
+        case i_ifle: {
+            ifle_helper(stack, program_counter, method);
+            break;
+        }
+        case i_if_icmpeq: {
+            if_icmpeq_helper(stack, program_counter, method);
+            break;
+        }
+        case i_if_icmpne: {
+            if_icmpne_helper(stack, program_counter, method);
+            break;
+        }
+        case i_if_icmplt: {
+            if_icmplt_helper(stack, program_counter, method);
+            break;
+        }
+        case i_if_icmpge: {
+            if_icmpge_helper(stack, program_counter, method);
+            break;
+        }
+        case i_if_icmpgt: {
+            if_icmpgt_helper(stack, program_counter, method);
+            break;
+        }
+        case i_if_icmple: {
+            if_icmple_helper(stack, program_counter, method);
+            break;
+        }
+        case i_goto: {
+            goto_helper(program_counter, method);
             break;
         }
         case i_return: {
