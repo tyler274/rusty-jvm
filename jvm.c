@@ -41,10 +41,10 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
                    int32_t *locals, class_file_t *class, heap_t *heap) {
     jvm_instruction_t opcode = (jvm_instruction_t) method->code.code[*program_counter];
     switch (opcode) {
-        // case i_nop: {
-        //     (*program_counter)++;
-        //     break;
-        // }
+        case i_nop: {
+            (*program_counter)++;
+            break;
+        }
         case i_iconst_m1: {
             iconst_helper(opcode, stack, program_counter);
             break;
@@ -245,12 +245,11 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
         }
 
         default: {
+            fprintf(stderr, "Running unimplemented opcode: %d\n\n", opcode);
+            (*program_counter)++;
             break;
         }
     }
-
-    (void) locals;
-    (void) class;
     (void) heap;
 }
 

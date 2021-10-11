@@ -40,7 +40,7 @@ __always_inline void bipush_helper(stack_t *stack, size_t *program_counter,
     // fprintf(stderr, "%08x", method-> code.code[(*program_counter)]);
 
     // the (signed char) cast is necessary to get negative values.
-    value = (int32_t) ((signed char) method->code.code[(*program_counter)++]);
+    value = (int32_t)((signed char) method->code.code[(*program_counter)++]);
     int32_t push_result = stack_push(stack, value);
     assert(push_result == 1);
 }
@@ -71,7 +71,7 @@ __always_inline void constant_pool_helper(stack_t *stack, cp_info *pool_const) {
     switch (pool_const->tag) {
         case CONSTANT_Integer: {
             int32_t cast_int =
-                (int32_t) ((CONSTANT_Integer_info *) pool_const->info)->bytes;
+                (int32_t)((CONSTANT_Integer_info *) pool_const->info)->bytes;
             int32_t push_result = stack_push(stack, cast_int);
             assert(push_result == 1);
             break;
@@ -93,7 +93,7 @@ __always_inline void ldc_helper(stack_t *stack, size_t *program_counter, method_
     size_t pool_index = 1;
     // the (unsigned char) cast is necessary to remember the operand in the code is
     // unsigned. remember the second program_counter increment here
-    pool_index = (size_t) ((unsigned char) method->code.code[(*program_counter)++]);
+    pool_index = (size_t)((unsigned char) method->code.code[(*program_counter)++]);
     cp_info pool_const = class->constant_pool[pool_index - 1];
     if (class->constant_pool[pool_index - 1].info != NULL) {
         constant_pool_helper(stack, &pool_const);
@@ -380,7 +380,7 @@ __always_inline void iinc_helper(size_t *program_counter, method_t *method,
     // remember the third program_counter increment here
     // just like `bipush` and `sipush` we need to cast the second operand to a `signed
     // char` before casting to an int to get proper handling of negative values.
-    second_operand = (int32_t) ((signed char) method->code.code[(*program_counter)++]);
+    second_operand = (int32_t)((signed char) method->code.code[(*program_counter)++]);
 
     locals[(size_t) first_operand] += (int32_t) second_operand;
 }
