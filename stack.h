@@ -1,4 +1,6 @@
-#pragma once
+#ifndef STACK_H
+#define STACK_H
+
 #include <assert.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -19,21 +21,19 @@ typedef struct {
 } stack_t;
 
 // init a stack struct in memory and return a pointer to it
-stack_t *stack_init() {
+stack_t *stack_init(size_t size) {
     // The stack  array is initially allocated to hold zero elements.
     stack_t *stack = calloc(1, sizeof(stack_t));
     // atm we use the heap to manage memory for stacks
-    stack->contents = NULL;
-    stack->size = 0;
+    // stack->contents = NULL;
+    stack->contents = (int32_t *) calloc(size, sizeof(int32_t));
+    stack->size = size;
     stack->top = 0;
     return stack;
 }
 
 void stack_free(stack_t *stack) {
-    /**
-     *  At the moment the stack's contents are allocated on the heap, and to avoid double
-     * free UB should be freed there as well.
-     */
+    // We handle this ourselves now, still watch out for double free.
     free(stack->contents);
     free(stack);
 }
@@ -103,3 +103,5 @@ int32_t stack_pop(stack_t *stack, int32_t *value) {
         return 0;
     }
 }
+
+#endif /* STACK_H */

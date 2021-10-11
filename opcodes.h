@@ -19,70 +19,32 @@ const int32_t THREE = 3;
 const int32_t FOUR = 4;
 const int32_t FIVE = 5;
 
-typedef struct {
-    size_t size;
-    size_t position;
-    int32_t *contents;
-} array_t;
-
-// init a stack struct in memory and return a pointer to it
-array_t *array_init() {
-    // The stack  array is initially allocated to hold zero elements.
-    array_t *array = calloc(1, sizeof(array_t));
-    // atm we use the heap to manage memory for stacks
-    array->contents = NULL;
-    array->size = 0;
-    array->position = 0;
-    return array;
-}
-
-void array_free(array_t *array) {
-    /**
-     *  At the moment the stack's contents are allocated on the heap, and to avoid double
-     * free UB should be freed there as well.
-     */
-    free(array->contents);
-    free(array);
-}
-
-void array_print(array_t *array) {
-    fprintf(stderr, "Printing array: size=%zu, position=%zu\n [", array->size,
-            array->position);
-    for (size_t i = 0; i < array->size; i++) {
-        fprintf(stderr, "%d, ", array->contents[i]);
-    }
-    fprintf(stderr, "]\n");
-}
-
-__always_inline void iconst_helper(jvm_instruction_t opcode, stack_t *stack,
-                                   size_t *program_counter) {
+void iconst_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_counter) {
     // this instruction always increments the counter by 1
     (*program_counter)++;
-    // we can take advantage of the opcode numbers to
-    int32_t con = ((int32_t) opcode) - THREE;
+    // we can take advantage of the opcode numbers to calculate the constant value
     int32_t push_result = 0;
-    push_result = stack_push(stack, con);
+    push_result = stack_push(stack, ((int32_t) opcode) - THREE);
     assert(push_result == 1);
 }
 
-__always_inline void bipush_helper(stack_t *stack, size_t *program_counter,
-                                   method_t *method) {
+void bipush_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // increment program counter by a total of two, one for the bipush instruction
     // itself, and another for the operand after pushing it to the stack.
     (*program_counter)++;
     // pushes the operand onto the stack.
     // remember the second program_counter increment here
-    int32_t value = 0;
+    // int32_t value = 0;
     // fprintf(stderr, "%08x", method-> code.code[(*program_counter)]);
 
     // the (signed char) cast is necessary to get negative values.
-    value = (int32_t)((signed char) method->code.code[(*program_counter)++]);
-    int32_t push_result = stack_push(stack, value);
+    // value = (int32_t)((signed char) method->code.code[(*program_counter)++]);
+    int32_t push_result = stack_push(
+        stack, (int32_t)((signed char) method->code.code[(*program_counter)++]));
     assert(push_result == 1);
 }
 
-__always_inline void sipush_helper(stack_t *stack, size_t *program_counter,
-                                   method_t *method) {
+void sipush_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // increment program counter by a total of three, one for the sipush instruction
     // itself, and two for the two operands after pushing them on to the stack.
     (*program_counter)++;
@@ -101,7 +63,7 @@ __always_inline void sipush_helper(stack_t *stack, size_t *program_counter,
 
 // switches on the constant type to determine how we should process pool_const's info
 // field.
-__always_inline void constant_pool_helper(stack_t *stack, cp_info *pool_const) {
+void constant_pool_helper(stack_t *stack, cp_info *pool_const) {
     assert(pool_const->info != NULL);
 
     switch (pool_const->tag) {
@@ -118,8 +80,8 @@ __always_inline void constant_pool_helper(stack_t *stack, cp_info *pool_const) {
     }
 }
 
-__always_inline void ldc_helper(stack_t *stack, size_t *program_counter, method_t *method,
-                                class_file_t *class) {
+void ldc_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                class_file_t *class) {
     // load constant instruction
     // increment program counter by a total of two, one for the ldc instruction
     // itself, and another for the operand designating what index we should use to select
@@ -139,8 +101,8 @@ __always_inline void ldc_helper(stack_t *stack, size_t *program_counter, method_
     // assert(push_result == 1);
 }
 
-__always_inline void iload_helper(stack_t *stack, size_t *program_counter,
-                                  method_t *method, int32_t *locals) {
+void iload_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                  int32_t *locals) {
     // Loads a local and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
@@ -152,8 +114,8 @@ __always_inline void iload_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
-__always_inline void aload_helper(stack_t *stack, size_t *program_counter,
-                                  method_t *method, int32_t *locals) {
+void aload_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                  int32_t *locals) {
     // Loads a local and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
@@ -165,8 +127,8 @@ __always_inline void aload_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
-__always_inline void iload_n_helper(jvm_instruction_t opcode, stack_t *stack,
-                                    size_t *program_counter, int32_t *locals) {
+void iload_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_counter,
+                    int32_t *locals) {
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
@@ -175,8 +137,8 @@ __always_inline void iload_n_helper(jvm_instruction_t opcode, stack_t *stack,
     assert(push_result == 1);
 }
 
-__always_inline void aload_n_helper(jvm_instruction_t opcode, stack_t *stack,
-                                    size_t *program_counter, int32_t *locals) {
+void aload_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_counter,
+                    int32_t *locals) {
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
@@ -185,8 +147,7 @@ __always_inline void aload_n_helper(jvm_instruction_t opcode, stack_t *stack,
     assert(push_result == 1);
 }
 
-__always_inline void iaload_helper(stack_t *stack, size_t *program_counter,
-                                   heap_t *heap) {
+void iaload_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
     (*program_counter)++;
 
     int32_t index = 0;
@@ -203,8 +164,8 @@ __always_inline void iaload_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
-__always_inline void istore_helper(stack_t *stack, size_t *program_counter,
-                                   method_t *method, int32_t *locals) {
+void istore_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                   int32_t *locals) {
     // stores an unsigned byte from the stack in the locals array at the place given by
     // the first operand.
     // increment the program_counter for the instruction itself
@@ -220,8 +181,8 @@ __always_inline void istore_helper(stack_t *stack, size_t *program_counter,
     locals[first_operand] = value;
 }
 
-__always_inline void astore_helper(stack_t *stack, size_t *program_counter,
-                                   method_t *method, int32_t *locals) {
+void astore_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                   int32_t *locals) {
     // stores an unsigned byte from the stack in the locals array at the place given by
     // the first operand.
     // increment the program_counter for the instruction itself
@@ -237,8 +198,8 @@ __always_inline void astore_helper(stack_t *stack, size_t *program_counter,
     locals[first_operand] = reference;
 }
 
-__always_inline void istore_n_helper(jvm_instruction_t opcode, stack_t *stack,
-                                     size_t *program_counter, int32_t *locals) {
+void istore_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_counter,
+                     int32_t *locals) {
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
@@ -250,8 +211,8 @@ __always_inline void istore_n_helper(jvm_instruction_t opcode, stack_t *stack,
     locals[locals_index] = value;
 }
 
-__always_inline void astore_n_helper(jvm_instruction_t opcode, stack_t *stack,
-                                     size_t *program_counter, int32_t *locals) {
+void astore_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_counter,
+                     int32_t *locals) {
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
@@ -263,8 +224,7 @@ __always_inline void astore_n_helper(jvm_instruction_t opcode, stack_t *stack,
     locals[locals_index] = reference;
 }
 
-__always_inline void iastore_helper(stack_t *stack, size_t *program_counter,
-                                    heap_t *heap) {
+void iastore_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
     (*program_counter)++;
     int32_t value = 0;
     int32_t pop_result = stack_pop(stack, &value);
@@ -281,7 +241,7 @@ __always_inline void iastore_helper(stack_t *stack, size_t *program_counter,
     array[index + 1] = value;
 }
 
-__always_inline void dup_helper(stack_t *stack, size_t *program_counter) {
+void dup_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t value = 0;
     int32_t pop_result = stack_pop(stack, &value);
@@ -293,7 +253,7 @@ __always_inline void dup_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void iadd_helper(stack_t *stack, size_t *program_counter) {
+void iadd_helper(stack_t *stack, size_t *program_counter) {
     // addition instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -311,7 +271,7 @@ __always_inline void iadd_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void isub_helper(stack_t *stack, size_t *program_counter) {
+void isub_helper(stack_t *stack, size_t *program_counter) {
     // subtraction instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -329,7 +289,7 @@ __always_inline void isub_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void imul_helper(stack_t *stack, size_t *program_counter) {
+void imul_helper(stack_t *stack, size_t *program_counter) {
     // multiplication instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -347,7 +307,7 @@ __always_inline void imul_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void idiv_helper(stack_t *stack, size_t *program_counter) {
+void idiv_helper(stack_t *stack, size_t *program_counter) {
     // multiplication instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -365,7 +325,7 @@ __always_inline void idiv_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void irem_helper(stack_t *stack, size_t *program_counter) {
+void irem_helper(stack_t *stack, size_t *program_counter) {
     // remainder instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -383,7 +343,7 @@ __always_inline void irem_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void ineg_helper(stack_t *stack, size_t *program_counter) {
+void ineg_helper(stack_t *stack, size_t *program_counter) {
     // negation instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -397,7 +357,7 @@ __always_inline void ineg_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void ishl_helper(stack_t *stack, size_t *program_counter) {
+void ishl_helper(stack_t *stack, size_t *program_counter) {
     // signed bit shift left instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -415,7 +375,7 @@ __always_inline void ishl_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void ishr_helper(stack_t *stack, size_t *program_counter) {
+void ishr_helper(stack_t *stack, size_t *program_counter) {
     // signed bit shift right instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -433,7 +393,7 @@ __always_inline void ishr_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void iushr_helper(stack_t *stack, size_t *program_counter) {
+void iushr_helper(stack_t *stack, size_t *program_counter) {
     // unsigned bit shift right
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -451,7 +411,7 @@ __always_inline void iushr_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void iand_helper(stack_t *stack, size_t *program_counter) {
+void iand_helper(stack_t *stack, size_t *program_counter) {
     // bit-wise AND instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -469,7 +429,7 @@ __always_inline void iand_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void ior_helper(stack_t *stack, size_t *program_counter) {
+void ior_helper(stack_t *stack, size_t *program_counter) {
     // bit-wise OR instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -487,7 +447,7 @@ __always_inline void ior_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void ixor_helper(stack_t *stack, size_t *program_counter) {
+void ixor_helper(stack_t *stack, size_t *program_counter) {
     // bit-wise XOR instruction
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
@@ -505,8 +465,7 @@ __always_inline void ixor_helper(stack_t *stack, size_t *program_counter) {
     assert(push_result == 1);
 }
 
-__always_inline void iinc_helper(size_t *program_counter, method_t *method,
-                                 int32_t *locals) {
+void iinc_helper(size_t *program_counter, method_t *method, int32_t *locals) {
     // increment program counter by a total of three, one for the iinc instruction
     // itself, and two for the two operands after pushing them on to the stack.
     (*program_counter)++;
@@ -526,7 +485,7 @@ __always_inline void iinc_helper(size_t *program_counter, method_t *method,
 // calculating the offset.
 const int32_t JUMP_TWO_OPCODES_OFFSET = -3;
 
-__always_inline int32_t jump_offset_helper(size_t *program_counter, method_t *method) {
+int32_t jump_offset_helper(size_t *program_counter, method_t *method) {
     int8_t first_operand = 0;
     int8_t second_operand = 0;
     // remember the second program_counter increment here
@@ -552,9 +511,8 @@ __always_inline int32_t jump_offset_helper(size_t *program_counter, method_t *me
     return jump_offset;
 }
 
-__always_inline void jump_one_op_helper(stack_t *stack, size_t *program_counter,
-                                        method_t *method, int32_t *first_stack_operand,
-                                        int32_t *jump_offset) {
+void jump_one_op_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                        int32_t *first_stack_operand, int32_t *jump_offset) {
     (*program_counter)++;
     *jump_offset = jump_offset_helper(program_counter, method);
 
@@ -564,10 +522,9 @@ __always_inline void jump_one_op_helper(stack_t *stack, size_t *program_counter,
     assert(pop_result == 1);
 }
 
-__always_inline void jump_two_ops_helper(stack_t *stack, size_t *program_counter,
-                                         method_t *method, int32_t *first_stack_operand,
-                                         int32_t *second_stack_operand,
-                                         int32_t *jump_offset) {
+void jump_two_ops_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                         int32_t *first_stack_operand, int32_t *second_stack_operand,
+                         int32_t *jump_offset) {
     (*program_counter)++;
     *jump_offset = jump_offset_helper(program_counter, method);
 
@@ -580,8 +537,7 @@ __always_inline void jump_two_ops_helper(stack_t *stack, size_t *program_counter
     assert(pop_result == 1);
 }
 
-__always_inline void ifeq_helper(stack_t *stack, size_t *program_counter,
-                                 method_t *method) {
+void ifeq_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if equal to zero, then jump` instruction
     // increment program counter by a total of three, one for the ifeq instruction
     // itself, and two for the two operands after pushing them on to the stack.
@@ -598,8 +554,7 @@ __always_inline void ifeq_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void ifne_helper(stack_t *stack, size_t *program_counter,
-                                 method_t *method) {
+void ifne_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if not equal to 0, then jump` instruction
     // increment program counter by a total of three, one for the ifeq instruction
     // itself, and two for the two operands after pushing them on to the stack.
@@ -617,8 +572,7 @@ __always_inline void ifne_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void iflt_helper(stack_t *stack, size_t *program_counter,
-                                 method_t *method) {
+void iflt_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if less than zero, then jump` instruction
     // increment program counter by a total of three, one for the ifeq instruction
     // itself, and two for the two operands after pushing them on to the stack.
@@ -636,8 +590,7 @@ __always_inline void iflt_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void ifge_helper(stack_t *stack, size_t *program_counter,
-                                 method_t *method) {
+void ifge_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if greater than or equal to zero, then jump` instruction
     // increment program counter by a total of three, one for the ifeq instruction
     // itself, and two for the two operands after pushing them on to the stack.
@@ -655,8 +608,7 @@ __always_inline void ifge_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void ifgt_helper(stack_t *stack, size_t *program_counter,
-                                 method_t *method) {
+void ifgt_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if greater than zero, then jump` instruction
     // increment program counter by a total of three, one for the ifeq instruction
     // itself, and two for the two operands after pushing them on to the stack.
@@ -674,8 +626,7 @@ __always_inline void ifgt_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void ifle_helper(stack_t *stack, size_t *program_counter,
-                                 method_t *method) {
+void ifle_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if less than or equal to zero, then jump` instruction
     // increment program counter by a total of three, one for the ifeq instruction
     // itself, and two for the two operands after pushing them on to the stack.
@@ -693,8 +644,7 @@ __always_inline void ifle_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void if_icmpeq_helper(stack_t *stack, size_t *program_counter,
-                                      method_t *method) {
+void if_icmpeq_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if the first stack operand (second to the top of the stack) is  equal to the
     // second stack operand (top of the stack, first to pop), then jump` instruction
     // increment program counter by a total of three, one for the `if_icmpeq` instruction
@@ -714,8 +664,7 @@ __always_inline void if_icmpeq_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void if_icmpne_helper(stack_t *stack, size_t *program_counter,
-                                      method_t *method) {
+void if_icmpne_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if the first stack operand (second to the top of the stack) is not equal to the
     // second stack operand (top of the stack, first to pop), then jump` instruction
     // increment program counter by a total of three, one for the `if_icmpne` instruction
@@ -735,8 +684,7 @@ __always_inline void if_icmpne_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void if_icmplt_helper(stack_t *stack, size_t *program_counter,
-                                      method_t *method) {
+void if_icmplt_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if the first stack operand (second to the top of the stack) is less than the
     // second stack operand (top of the stack, first to pop), then jump` instruction
     // increment program counter by a total of three, one for the `if_icmplt` instruction
@@ -756,8 +704,7 @@ __always_inline void if_icmplt_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void if_icmpge_helper(stack_t *stack, size_t *program_counter,
-                                      method_t *method) {
+void if_icmpge_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if the first stack operand (second to the top of the stack) is greater than or
     // equal to the second stack operand (top of the stack, first to pop), then jump`
     // instruction increment program counter by a total of three, one for the `if_icmpge`
@@ -778,8 +725,7 @@ __always_inline void if_icmpge_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void if_icmpgt_helper(stack_t *stack, size_t *program_counter,
-                                      method_t *method) {
+void if_icmpgt_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if the first stack operand (second to the top of the stack) is greater than
     // the second stack operand (top of the stack, first to pop), then jump`
     // instruction increment program counter by a total of three, one for the if_icmpgt
@@ -799,8 +745,7 @@ __always_inline void if_icmpgt_helper(stack_t *stack, size_t *program_counter,
         (*program_counter) += jump_offset;
     }
 }
-__always_inline void if_icmple_helper(stack_t *stack, size_t *program_counter,
-                                      method_t *method) {
+void if_icmple_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     // `if the first stack operand (second to the top of the stack) is less than or equal
     // to the second stack operand (top of the stack, first to pop), then jump`
     // instruction increment program counter by a total of three, one for the if_icmple
@@ -821,7 +766,7 @@ __always_inline void if_icmple_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void goto_helper(size_t *program_counter, method_t *method) {
+void goto_helper(size_t *program_counter, method_t *method) {
     // goto instruction, increments the program counter to jump to a specific part of the
     // method's code.
     // increment program counter by a total of three, one for the ifeq instruction
@@ -836,8 +781,8 @@ __always_inline void goto_helper(size_t *program_counter, method_t *method) {
     (*program_counter) += jump_offset;
 }
 
-__always_inline void ireturn_helper(stack_t *stack, size_t *program_counter,
-                                    method_t *method, optional_value_t *result) {
+void ireturn_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                    optional_value_t *result) {
     (*program_counter)++;
     int32_t pop_result = 0;
     int32_t value = 0;
@@ -850,13 +795,13 @@ __always_inline void ireturn_helper(stack_t *stack, size_t *program_counter,
     *program_counter = method->code.code_length;
 }
 
-__always_inline void return_helper(size_t *program_counter, method_t *method) {
+void return_helper(size_t *program_counter, method_t *method) {
     // return by setting the program counter to the end of the instruction list,
     // thus breaking the while loop
     *program_counter = method->code.code_length;
 }
 
-__always_inline void getstatic_helper(size_t *program_counter) {
+void getstatic_helper(size_t *program_counter) {
     // increment the program counter for the `getstatic` opcode itself.
     (*program_counter)++;
 
@@ -865,7 +810,7 @@ __always_inline void getstatic_helper(size_t *program_counter) {
     (*program_counter) += TWO_OPERAND_OFFSET;
 }
 
-__always_inline void invokevirtual_helper(stack_t *stack, size_t *program_counter) {
+void invokevirtual_helper(stack_t *stack, size_t *program_counter) {
     // invokevirtual b1 b2
     // Pops and prints the top value of the operand stack followed by a newline
     // character. Then, moves the program counter past b2 (i.e., increments it by
@@ -878,9 +823,8 @@ __always_inline void invokevirtual_helper(stack_t *stack, size_t *program_counte
     (*program_counter) += TWO_OPERAND_OFFSET;
 }
 
-static inline void invokestatic_helper(stack_t *stack, size_t *program_counter,
-                                       method_t *method, class_file_t *class,
-                                       heap_t *heap) {
+void invokestatic_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                         class_file_t *class, heap_t *heap) {
     (*program_counter)++;
 
     u1 first_operand = 0;
@@ -911,8 +855,8 @@ static inline void invokestatic_helper(stack_t *stack, size_t *program_counter,
     }
 }
 
-__always_inline void newarray_helper(stack_t *stack, size_t *program_counter,
-                                     method_t *method, heap_t *heap) {
+void newarray_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                     heap_t *heap) {
     (*program_counter)++;
     u1 first_operand = method->code.code[(*program_counter)++];
     assert(first_operand == 10);
@@ -929,8 +873,7 @@ __always_inline void newarray_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
-__always_inline void arraylength_helper(stack_t *stack, size_t *program_counter,
-                                        heap_t *heap) {
+void arraylength_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
     (*program_counter)++;
 
     int32_t pop_result = 0;
@@ -943,8 +886,8 @@ __always_inline void arraylength_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
-__always_inline void areturn_helper(stack_t *stack, size_t *program_counter,
-                                    method_t *method, optional_value_t *return_value) {
+void areturn_helper(stack_t *stack, size_t *program_counter, method_t *method,
+                    optional_value_t *return_value) {
     (*program_counter)++;
 
     int32_t reference = 0;
@@ -957,4 +900,256 @@ __always_inline void areturn_helper(stack_t *stack, size_t *program_counter,
     return_value->value = reference;
 
     (*program_counter) = method->code.code_length;
+}
+
+// essentially a giant vtable that matches the opcode and handles running that
+// instruction's implementation
+void opcode_helper(stack_t *stack, size_t program_counter, method_t *method,
+                   int32_t *locals, class_file_t *class, heap_t *heap,
+                   optional_value_t *return_value) {
+    jvm_instruction_t opcode = (jvm_instruction_t) method->code.code[program_counter];
+    switch (opcode) {
+        case i_nop:
+            (program_counter)++;
+            break;
+
+        case i_iconst_m1:
+            iconst_helper(opcode, stack, &program_counter);
+            break;
+
+        case i_iconst_0:
+            iconst_helper(opcode, stack, &program_counter);
+            break;
+
+        case i_iconst_1:
+            iconst_helper(opcode, stack, &program_counter);
+            break;
+
+        case i_iconst_2:
+            iconst_helper(opcode, stack, &program_counter);
+            break;
+
+        case i_iconst_3:
+            iconst_helper(opcode, stack, &program_counter);
+            break;
+
+        case i_iconst_4:
+            iconst_helper(opcode, stack, &program_counter);
+            break;
+
+        case i_iconst_5:
+            iconst_helper(opcode, stack, &program_counter);
+            break;
+
+        case i_bipush:
+            bipush_helper(stack, &program_counter, method);
+            break;
+
+        case i_sipush:
+            sipush_helper(stack, &program_counter, method);
+            break;
+
+        case i_ldc:
+            ldc_helper(stack, &program_counter, method, class);
+            break;
+
+        case i_iload:
+            iload_helper(stack, &program_counter, method, locals);
+            break;
+
+        case i_iload_0:
+            iload_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_iload_1:
+            iload_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_iload_2:
+            iload_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_iload_3:
+            iload_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_istore:
+            istore_helper(stack, &program_counter, method, locals);
+            break;
+
+        case i_istore_0:
+            istore_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_istore_1:
+            istore_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_istore_2:
+            istore_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_istore_3:
+            istore_n_helper(opcode, stack, &program_counter, locals);
+            break;
+
+        case i_iadd:
+            iadd_helper(stack, &program_counter);
+            break;
+
+        case i_isub:
+            isub_helper(stack, &program_counter);
+            break;
+
+        case i_imul:
+            imul_helper(stack, &program_counter);
+            break;
+
+        case i_idiv:
+            idiv_helper(stack, &program_counter);
+            break;
+
+        case i_irem:
+            irem_helper(stack, &program_counter);
+            break;
+
+        case i_ineg:
+            ineg_helper(stack, &program_counter);
+            break;
+
+        case i_ishl:
+            ishl_helper(stack, &program_counter);
+            break;
+
+        case i_ishr:
+            ishr_helper(stack, &program_counter);
+            break;
+
+        case i_iushr:
+            iushr_helper(stack, &program_counter);
+            break;
+
+        case i_iand:
+            iand_helper(stack, &program_counter);
+            break;
+
+        case i_ior:
+            ior_helper(stack, &program_counter);
+            break;
+
+        case i_ixor:
+            ixor_helper(stack, &program_counter);
+            break;
+
+        case i_iinc:
+            iinc_helper(&program_counter, method, locals);
+            break;
+
+        case i_ifeq:
+            ifeq_helper(stack, &program_counter, method);
+            break;
+
+        case i_ifne:
+            ifne_helper(stack, &program_counter, method);
+            break;
+
+        case i_iflt:
+            iflt_helper(stack, &program_counter, method);
+            break;
+
+        case i_ifge:
+            ifge_helper(stack, &program_counter, method);
+            break;
+
+        case i_ifgt:
+            ifgt_helper(stack, &program_counter, method);
+            break;
+
+        case i_ifle:
+            ifle_helper(stack, &program_counter, method);
+            break;
+
+        case i_if_icmpeq:
+            if_icmpeq_helper(stack, &program_counter, method);
+            break;
+
+        case i_if_icmpne:
+            if_icmpne_helper(stack, &program_counter, method);
+            break;
+
+        case i_if_icmplt:
+            if_icmplt_helper(stack, &program_counter, method);
+            break;
+
+        case i_if_icmpge:
+            if_icmpge_helper(stack, &program_counter, method);
+            break;
+
+        case i_if_icmpgt:
+            if_icmpgt_helper(stack, &program_counter, method);
+            break;
+
+        case i_if_icmple:
+            if_icmple_helper(stack, &program_counter, method);
+            break;
+
+        case i_goto:
+            goto_helper(&program_counter, method);
+            break;
+
+        case i_ireturn:
+            ireturn_helper(stack, &program_counter, method, return_value);
+            break;
+
+        case i_return:
+            return_helper(&program_counter, method);
+            break;
+
+        case i_getstatic:
+            getstatic_helper(&program_counter);
+            break;
+
+        case i_invokevirtual:
+            invokevirtual_helper(stack, &program_counter);
+            break;
+
+        case i_invokestatic: {
+            (program_counter)++;
+
+            u1 first_operand = 0;
+            u1 second_operand = 0;
+            // remember the second and third program_counter increments here
+            first_operand = method->code.code[(program_counter)++];
+            second_operand = method->code.code[(program_counter)++];
+            u2 sub_method_index = (first_operand << 8) | second_operand;
+            method_t *sub_method = find_method_from_index(sub_method_index, class);
+            assert(sub_method != NULL);
+
+            int32_t *locals_ptr = calloc(sub_method->code.max_locals, sizeof(int32_t));
+            heap_add(heap, locals_ptr);
+            u2 num_args = get_number_of_parameters(sub_method);
+
+            int32_t pop_result = 0;
+            int32_t popped_value = 0;
+            for (size_t i = 0; i < num_args; i++) {
+                pop_result = stack_pop(stack, &popped_value);
+                assert(pop_result == 1);
+                locals_ptr[num_args - (i + 1)] = popped_value;
+            }
+
+            optional_value_t returned_value =
+                execute(sub_method, locals_ptr, class, heap);
+            if (returned_value.has_value == true) {
+                int32_t push_result = stack_push(stack, returned_value.value);
+                assert(push_result == 1);
+            }
+            // invokestatic_helper(stack, &program_counter, method, class, heap);
+            break;
+        }
+        default:
+            fprintf(stderr, "Running unimplemented opcode: %d\n\n", opcode);
+            assert(false);
+            (program_counter)++;
+            break;
+    }
 }
