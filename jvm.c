@@ -35,13 +35,7 @@ const char MAIN_DESCRIPTOR[] = "([Ljava/lang/String;)V";
 optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
                          heap_t *heap) {
     size_t program_counter = 0;
-    // int32_t *stack_ptr = calloc(method->code.max_stack, sizeof(int32_t));
-    // heap_add(heap, stack_ptr);
-
     stack_t *stack = stack_init(method->code.max_stack);
-    // stack->size = method->code.max_stack;
-    // assign the stack a pointer on the heap.
-    // stack->contents = stack_ptr;
 
     // Return void
     optional_value_t result = {.has_value = false};
