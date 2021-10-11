@@ -49,9 +49,6 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
                 break;
 
             case i_iconst_m1:
-                iconst_helper(opcode, stack, &program_counter);
-                break;
-
             case i_iconst_0:
             case i_iconst_1:
             case i_iconst_2:
