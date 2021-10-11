@@ -152,6 +152,19 @@ __always_inline void iload_helper(stack_t *stack, size_t *program_counter,
     assert(push_result == 1);
 }
 
+__always_inline void aload_helper(stack_t *stack, size_t *program_counter,
+                                  method_t *method, int32_t *locals) {
+    // Loads a local and pushes it onto the stack
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+
+    u1 first_operand = 0;
+    // remember the second program_counter increment here
+    first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    int32_t push_result = stack_push(stack, locals[(size_t) first_operand]);
+    assert(push_result == 1);
+}
+
 __always_inline void iload_n_helper(jvm_instruction_t opcode, stack_t *stack,
                                     size_t *program_counter, int32_t *locals) {
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
@@ -159,6 +172,34 @@ __always_inline void iload_n_helper(jvm_instruction_t opcode, stack_t *stack,
     (*program_counter)++;
     size_t locals_index = opcode - i_iload_0;
     int32_t push_result = stack_push(stack, locals[locals_index]);
+    assert(push_result == 1);
+}
+
+__always_inline void aload_n_helper(jvm_instruction_t opcode, stack_t *stack,
+                                    size_t *program_counter, int32_t *locals) {
+    // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+    size_t locals_index = opcode - i_aload_0;
+    int32_t push_result = stack_push(stack, locals[locals_index]);
+    assert(push_result == 1);
+}
+
+__always_inline void iaload_helper(stack_t *stack, size_t *program_counter,
+                                   heap_t *heap) {
+    (*program_counter)++;
+
+    int32_t index = 0;
+    int32_t pop_result = stack_pop(stack, &index);
+    assert(pop_result == 1);
+    int32_t reference = 0;
+    pop_result = stack_pop(stack, &reference);
+    assert(pop_result == 1);
+
+    int32_t *array = heap_get(heap, reference);
+    assert(index < array[0]);
+    int32_t value = array[index + 1];
+    int32_t push_result = stack_push(stack, value);
     assert(push_result == 1);
 }
 
@@ -179,6 +220,23 @@ __always_inline void istore_helper(stack_t *stack, size_t *program_counter,
     locals[first_operand] = value;
 }
 
+__always_inline void astore_helper(stack_t *stack, size_t *program_counter,
+                                   method_t *method, int32_t *locals) {
+    // stores an unsigned byte from the stack in the locals array at the place given by
+    // the first operand.
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+
+    u1 first_operand = 0;
+    // remember the second program_counter increment here
+    first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    int32_t reference = 0;
+    int32_t pop_result = stack_pop(stack, &reference);
+    assert(pop_result == 1);
+
+    locals[first_operand] = reference;
+}
+
 __always_inline void istore_n_helper(jvm_instruction_t opcode, stack_t *stack,
                                      size_t *program_counter, int32_t *locals) {
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
@@ -190,6 +248,37 @@ __always_inline void istore_n_helper(jvm_instruction_t opcode, stack_t *stack,
     assert(pop_result == 1);
 
     locals[locals_index] = value;
+}
+
+__always_inline void astore_n_helper(jvm_instruction_t opcode, stack_t *stack,
+                                     size_t *program_counter, int32_t *locals) {
+    // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
+    // increment the program_counter for the instruction itself
+    (*program_counter)++;
+    size_t locals_index = (size_t) opcode - i_astore_0;
+    int32_t reference = 0;
+    int32_t pop_result = stack_pop(stack, &reference);
+    assert(pop_result == 1);
+
+    locals[locals_index] = reference;
+}
+
+__always_inline void iastore_helper(stack_t *stack, size_t *program_counter,
+                                    heap_t *heap) {
+    (*program_counter)++;
+    int32_t value = 0;
+    int32_t pop_result = stack_pop(stack, &value);
+    assert(pop_result == 1);
+    int32_t index = 0;
+    pop_result = stack_pop(stack, &index);
+    assert(pop_result == 1);
+    int32_t reference = 0;
+    pop_result = stack_pop(stack, &reference);
+    assert(pop_result == 1);
+
+    int32_t *array = heap_get(heap, reference);
+    assert(index < array[0]);
+    array[index + 1] = value;
 }
 
 __always_inline void dup_helper(stack_t *stack, size_t *program_counter) {
@@ -820,4 +909,52 @@ static inline void invokestatic_helper(stack_t *stack, size_t *program_counter,
         int32_t push_result = stack_push(stack, returned_value.value);
         assert(push_result == 1);
     }
+}
+
+__always_inline void newarray_helper(stack_t *stack, size_t *program_counter,
+                                     method_t *method, heap_t *heap) {
+    (*program_counter)++;
+    u1 first_operand = method->code.code[(*program_counter)++];
+    assert(first_operand == 10);
+
+    int32_t pop_result = 0;
+    int32_t push_result = 0;
+    int32_t count = 0;
+    pop_result = stack_pop(stack, &count);
+    assert(pop_result == 1);
+    int32_t *new_array = calloc(count + 1, sizeof(int32_t));
+    // we store the size of the array as an additional entry at the front.
+    new_array[0] = count;
+    push_result = stack_push(stack, heap_add(heap, new_array));
+    assert(push_result == 1);
+}
+
+__always_inline void arraylength_helper(stack_t *stack, size_t *program_counter,
+                                        heap_t *heap) {
+    (*program_counter)++;
+
+    int32_t pop_result = 0;
+    int32_t push_result = 0;
+    int32_t reference = 0;
+    pop_result = stack_pop(stack, &reference);
+    assert(pop_result == 1);
+    int32_t *array = heap_get(heap, reference);
+    push_result = stack_push(stack, array[0]);
+    assert(push_result == 1);
+}
+
+__always_inline void areturn_helper(stack_t *stack, size_t *program_counter,
+                                    method_t *method, optional_value_t *return_value) {
+    (*program_counter)++;
+
+    int32_t reference = 0;
+    int32_t pop_result = 0;
+
+    pop_result = stack_pop(stack, &reference);
+    assert(pop_result == 1);
+
+    return_value->has_value = true;
+    return_value->value = reference;
+
+    (*program_counter) = method->code.code_length;
 }

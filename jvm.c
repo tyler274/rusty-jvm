@@ -332,62 +332,112 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
                 break;
 
             case i_iload:
-                iload_helper(stack, &program_counter, method, locals);
-                break;
+                // iload_helper(stack, &program_counter, method, locals);
+                // break;
             case i_aload:
-                aload_helper();
+                (program_counter)++;
+
+                u1 first_operand = 0;
+                // remember the second program_counter increment here
+                first_operand = (unsigned char) method->code.code[(program_counter)++];
+                int32_t push_result = stack_push(stack, locals[(size_t) first_operand]);
+                assert(push_result == 1);
                 break;
             case i_iload_0:
             case i_iload_1:
             case i_iload_2:
             case i_iload_3:
-                iload_n_helper(opcode, stack, &program_counter, locals);
-                break;
+                // iload_n_helper(opcode, stack, &program_counter, locals);
+                // break;
             case i_aload_0:
             case i_aload_1:
             case i_aload_2:
             case i_aload_3:
-                aload_n_helper();
+                iload_n_helper(opcode, stack, &program_counter, locals);
                 break;
 
             case i_iaload:
-                iaload_helper();
+                iaload_helper(stack, &program_counter, heap);
                 break;
             case i_istore:
                 istore_helper(stack, &program_counter, method, locals);
                 break;
             case i_astore:
-                astore_helper();
+                astore_helper(stack, &program_counter, method, locals);
                 break;
 
             case i_istore_0:
             case i_istore_1:
             case i_istore_2:
             case i_istore_3:
-                istore_n_helper(opcode, stack, &program_counter, locals);
-                break;
+                // istore_n_helper(opcode, stack, &program_counter, locals);
+                // break;
             case i_astore_0:
             case i_astore_1:
             case i_astore_2:
             case i_astore_3:
-                astore_n_helper(opcode, stack, &program_counter, locals);
+                istore_n_helper(opcode, stack, &program_counter, locals);
                 break;
             case i_iastore:
-                iastore_helper();
+                iastore_helper(stack, &program_counter, heap);
                 break;
             case i_dup:
-                dup_helper(stack, &program_counter);
+                (program_counter)++;
+                int32_t value = 0;
+                int32_t pop_result = stack_pop(stack, &value);
+                assert(pop_result == 1);
+                push_result = 0;
+                push_result = stack_push(stack, value);
+                assert(push_result == 1);
+                push_result = stack_push(stack, value);
+                assert(push_result == 1);
                 break;
             case i_iadd:
-                iadd_helper(stack, &program_counter);
+                (program_counter)++;
+                int32_t first_stack_operand = 0;
+                int32_t second_stack_operand = 0;
+                // pop our second operand (pushed to the stack last).
+                pop_result = stack_pop(stack, &second_stack_operand);
+                assert(pop_result == 1);
+                // pop our first operand
+                pop_result = stack_pop(stack, &first_stack_operand);
+                assert(pop_result == 1);
+                // push the result back on to the stack.
+                push_result =
+                    stack_push(stack, first_stack_operand + second_stack_operand);
+                assert(push_result == 1);
                 break;
 
             case i_isub:
-                isub_helper(stack, &program_counter);
+                (program_counter)++;
+
+                // pop our second operand (pushed to the stack last).
+                pop_result = stack_pop(stack, &second_stack_operand);
+                assert(pop_result == 1);
+                // pop our first operand
+                pop_result = stack_pop(stack, &first_stack_operand);
+                assert(pop_result == 1);
+                // push the result back on to the stack.
+                push_result =
+                    stack_push(stack, first_stack_operand - second_stack_operand);
+                assert(push_result == 1);
                 break;
 
             case i_imul:
-                imul_helper(stack, &program_counter);
+                (program_counter)++;
+                first_stack_operand = 0;
+                second_stack_operand = 0;
+
+                // pop our second operand (pushed to the stack last).
+                pop_result = stack_pop(stack, &second_stack_operand);
+                assert(pop_result == 1);
+                // pop our first operand
+                pop_result = stack_pop(stack, &first_stack_operand);
+                assert(pop_result == 1);
+                // push the result back on to the stack.
+                push_result =
+                    stack_push(stack, first_stack_operand * second_stack_operand);
+                assert(push_result == 1);
                 break;
 
             case i_idiv:
@@ -487,7 +537,7 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
                 break;
 
             case i_areturn:
-                areturn_helper();
+                areturn_helper(stack, &program_counter, method, &result);
                 break;
 
             case i_return:
@@ -538,11 +588,35 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
             }
 
             case i_newarray:
-                newarray_helper();
+                // newarray_helper(stack, &program_counter, method, heap);
+                (program_counter)++;
+                first_operand = method->code.code[(program_counter)++];
+                assert(first_operand == 10);
+
+                pop_result = 0;
+                push_result = 0;
+
+                pop_result = stack_pop(stack, &value);
+                assert(pop_result == 1);
+                int32_t *new_array = calloc(value + 1, sizeof(int32_t));
+                // we store the size of the array as an additional entry at the front.
+                new_array[0] = value;
+                push_result = stack_push(stack, heap_add(heap, new_array));
+                assert(push_result == 1);
                 break;
 
             case i_arraylength:
-                arraylength_helper();
+
+                program_counter++;
+
+                // int32_t pop_result = 0;
+                // int32_t push_result = 0;
+                value = 0;
+                pop_result = stack_pop(stack, &value);
+                assert(pop_result == 1);
+                int32_t *array = heap_get(heap, value);
+                push_result = stack_push(stack, array[0]);
+                assert(push_result == 1);
                 break;
             default:
                 fprintf(stderr, "Running unimplemented opcode: %d\n\n", opcode);
