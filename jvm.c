@@ -246,6 +246,7 @@ void opcode_helper(stack_t *stack, size_t *program_counter, method_t *method,
 
         default: {
             fprintf(stderr, "Running unimplemented opcode: %d\n\n", opcode);
+            assert(false);
             (*program_counter)++;
             break;
         }

@@ -390,27 +390,28 @@ __always_inline void iinc_helper(size_t *program_counter, method_t *method,
 const int32_t JUMP_TWO_OPCODES_OFFSET = -3;
 
 __always_inline int32_t jump_offset_helper(size_t *program_counter, method_t *method) {
-    u1 first_operand = 0;
-    u1 second_operand = 0;
+    int8_t first_operand = 0;
+    int8_t second_operand = 0;
     // remember the second program_counter increment here
     // first_operand = (unsigned char) method->code.code[(*program_counter)++];
-    first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    first_operand = (signed char) method->code.code[(*program_counter)++];
     // remember the third program_counter increment here
     // just like `bipush` and `sipush` we need to cast the second operand to an `unsigned
     // char`.
     // second_operand = (unsigned char) method->code.code[(*program_counter)++];
-    second_operand = (unsigned char) method->code.code[(*program_counter)++];
+    second_operand = (signed char) method->code.code[(*program_counter)++];
 
     int32_t jump_offset = 0;
     jump_offset =
-        (((signed int) first_operand << 8) | second_operand) + JUMP_TWO_OPCODES_OFFSET;
+        ((int16_t)((int16_t)((signed char) first_operand) << 8) | second_operand) +
+        JUMP_TWO_OPCODES_OFFSET;
 
-    fprintf(stderr,
-            "Jump Debugging Assistant\nprogram_counter: %zu\nfirst operand byte: "
-            "%x\nsecond operand byte: "
-            "%x\njump_offset: %d\nprogram_counter after offset: %zu\n\n",
-            *program_counter, first_operand, second_operand, jump_offset,
-            (*program_counter) + jump_offset);
+    // fprintf(stderr,
+    //         "Jump Debugging Assistant\nprogram_counter: %zu\nfirst operand byte: "
+    //         "%x\nsecond operand byte: "
+    //         "%x\njump_offset: %d\nprogram_counter after offset: %zu\n\n",
+    //         *program_counter, first_operand, second_operand, jump_offset,
+    //         (*program_counter) + jump_offset);
     return jump_offset;
 }
 
@@ -688,6 +689,7 @@ __always_inline void goto_helper(size_t *program_counter, method_t *method) {
     // method's code.
     // increment program counter by a total of three, one for the ifeq instruction
     // itself, and two for the two operands after pushing them on to the stack.
+    (*program_counter)++;
     int32_t jump_offset = 0;
     jump_offset = jump_offset_helper(program_counter, method);
 
