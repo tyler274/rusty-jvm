@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "jvm.h"
 #include "read_class.h"
 #include "stack.h"
 
@@ -17,6 +18,41 @@ const int32_t TWO = 2;
 const int32_t THREE = 3;
 const int32_t FOUR = 4;
 const int32_t FIVE = 5;
+
+typedef struct {
+    size_t size;
+    size_t position;
+    int32_t *contents;
+} array_t;
+
+// init a stack struct in memory and return a pointer to it
+array_t *array_init() {
+    // The stack  array is initially allocated to hold zero elements.
+    array_t *array = calloc(1, sizeof(array_t));
+    // atm we use the heap to manage memory for stacks
+    array->contents = NULL;
+    array->size = 0;
+    array->position = 0;
+    return array;
+}
+
+void array_free(array_t *array) {
+    /**
+     *  At the moment the stack's contents are allocated on the heap, and to avoid double
+     * free UB should be freed there as well.
+     */
+    free(array->contents);
+    free(array);
+}
+
+void array_print(array_t *array) {
+    fprintf(stderr, "Printing array: size=%zu, position=%zu\n [", array->size,
+            array->position);
+    for (size_t i = 0; i < array->size; i++) {
+        fprintf(stderr, "%d, ", array->contents[i]);
+    }
+    fprintf(stderr, "]\n");
+}
 
 __always_inline void iconst_helper(jvm_instruction_t opcode, stack_t *stack,
                                    size_t *program_counter) {
@@ -154,6 +190,18 @@ __always_inline void istore_n_helper(jvm_instruction_t opcode, stack_t *stack,
     assert(pop_result == 1);
 
     locals[locals_index] = value;
+}
+
+__always_inline void dup_helper(stack_t *stack, size_t *program_counter) {
+    (*program_counter)++;
+    int32_t value = 0;
+    int32_t pop_result = stack_pop(stack, &value);
+    assert(pop_result == 1);
+    int32_t push_result = 0;
+    push_result = stack_push(stack, value);
+    assert(push_result == 1);
+    push_result = stack_push(stack, value);
+    assert(push_result == 1);
 }
 
 __always_inline void iadd_helper(stack_t *stack, size_t *program_counter) {
@@ -699,6 +747,20 @@ __always_inline void goto_helper(size_t *program_counter, method_t *method) {
     (*program_counter) += jump_offset;
 }
 
+__always_inline void ireturn_helper(stack_t *stack, size_t *program_counter,
+                                    method_t *method, optional_value_t *result) {
+    (*program_counter)++;
+    int32_t pop_result = 0;
+    int32_t value = 0;
+    pop_result = stack_pop(stack, &value);
+    assert(pop_result == 1);
+
+    result->has_value = true;
+    result->value = value;
+
+    *program_counter = method->code.code_length;
+}
+
 __always_inline void return_helper(size_t *program_counter, method_t *method) {
     // return by setting the program counter to the end of the instruction list,
     // thus breaking the while loop
@@ -725,4 +787,37 @@ __always_inline void invokevirtual_helper(stack_t *stack, size_t *program_counte
     pop_result = stack_pop(stack, &value);
     fprintf(stdout, "%d\n", value);
     (*program_counter) += TWO_OPERAND_OFFSET;
+}
+
+static inline void invokestatic_helper(stack_t *stack, size_t *program_counter,
+                                       method_t *method, class_file_t *class,
+                                       heap_t *heap) {
+    (*program_counter)++;
+
+    u1 first_operand = 0;
+    u1 second_operand = 0;
+    // remember the second and third program_counter increments here
+    first_operand = method->code.code[(*program_counter)++];
+    second_operand = method->code.code[(*program_counter)++];
+    u2 sub_method_index = (first_operand << 8) | second_operand;
+    method_t *sub_method = find_method_from_index(sub_method_index, class);
+    assert(sub_method != NULL);
+
+    int32_t *locals_ptr = calloc(sub_method->code.max_locals, sizeof(int32_t));
+    heap_add(heap, locals_ptr);
+    u2 num_args = get_number_of_parameters(sub_method);
+
+    int32_t pop_result = 0;
+    int32_t popped_value = 0;
+    for (size_t i = 0; i < num_args; i++) {
+        pop_result = stack_pop(stack, &popped_value);
+        assert(pop_result == 1);
+        locals_ptr[num_args - (i + 1)] = popped_value;
+    }
+
+    optional_value_t returned_value = execute(sub_method, locals_ptr, class, heap);
+    if (returned_value.has_value == true) {
+        int32_t push_result = stack_push(stack, returned_value.value);
+        assert(push_result == 1);
+    }
 }

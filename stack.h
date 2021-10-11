@@ -34,7 +34,7 @@ void stack_free(stack_t *stack) {
      *  At the moment the stack's contents are allocated on the heap, and to avoid double
      * free UB should be freed there as well.
      */
-    // free(stack->contents);
+    free(stack->contents);
     free(stack);
 }
 

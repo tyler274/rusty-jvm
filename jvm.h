@@ -1,6 +1,12 @@
 #ifndef JVM_H
 #define JVM_H
 
+#include <inttypes.h>
+#include <stdbool.h>
+
+#include "class_file.h"
+#include "heap.h"
+
 /**
  * JVM integer instruction mnemonics and opcodes. If you're interested,
  * https://docs.oracle.com/javase/specs/jvms/se12/html/jvms-6.html
@@ -76,5 +82,21 @@ typedef enum {
     i_newarray = 0xbc,
     i_arraylength = 0xbe
 } jvm_instruction_t;
+
+/**
+ * Represents the return value of a Java method: either void or an int or a reference.
+ * For simplification, we represent a reference as an index into a heap-allocated
+ * array. (In a real JVM, methods could also return object references or other
+ * primitives.)
+ */
+typedef struct {
+    /** Whether this returned value is an int */
+    bool has_value;
+    /** The returned value (only valid if `has_value` is true) */
+    int32_t value;
+} optional_value_t;
+
+optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
+                         heap_t *heap);
 
 #endif /* JVM_H */
