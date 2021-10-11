@@ -1,4 +1,6 @@
-#pragma once
+#ifndef OPCODES_H
+#define OPCODES_H
+
 #include <assert.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -23,9 +25,7 @@ void iconst_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_cou
     // this instruction always increments the counter by 1
     (*program_counter)++;
     // we can take advantage of the opcode numbers to calculate the constant value
-    int32_t push_result = 0;
-    push_result = stack_push(stack, ((int32_t) opcode) - THREE);
-    assert(push_result == 1);
+    assert(stack_push(stack, ((int32_t) opcode) - THREE) == 1);
 }
 
 void bipush_helper(stack_t *stack, size_t *program_counter, method_t *method) {
@@ -34,14 +34,12 @@ void bipush_helper(stack_t *stack, size_t *program_counter, method_t *method) {
     (*program_counter)++;
     // pushes the operand onto the stack.
     // remember the second program_counter increment here
-    // int32_t value = 0;
     // fprintf(stderr, "%08x", method-> code.code[(*program_counter)]);
 
     // the (signed char) cast is necessary to get negative values.
-    // value = (int32_t)((signed char) method->code.code[(*program_counter)++]);
-    int32_t push_result = stack_push(
-        stack, (int32_t)((signed char) method->code.code[(*program_counter)++]));
-    assert(push_result == 1);
+    assert(stack_push(stack,
+                      (int32_t)((signed char) method->code.code[(*program_counter)++])) ==
+           1);
 }
 
 void sipush_helper(stack_t *stack, size_t *program_counter, method_t *method) {
@@ -57,8 +55,7 @@ void sipush_helper(stack_t *stack, size_t *program_counter, method_t *method) {
 
     signed short result = 0;
     result = (((signed short) first_operand << 8) | second_operand);
-    int32_t push_result = stack_push(stack, result);
-    assert(push_result == 1);
+    assert(stack_push(stack, result) == 1);
 }
 
 // switches on the constant type to determine how we should process pool_const's info
@@ -70,8 +67,7 @@ void constant_pool_helper(stack_t *stack, cp_info *pool_const) {
         case CONSTANT_Integer: {
             int32_t cast_int =
                 (int32_t)((CONSTANT_Integer_info *) pool_const->info)->bytes;
-            int32_t push_result = stack_push(stack, cast_int);
-            assert(push_result == 1);
+            assert(stack_push(stack, cast_int) == 1);
             break;
         }
         default: {
@@ -87,7 +83,6 @@ void ldc_helper(stack_t *stack, size_t *program_counter, method_t *method,
     // itself, and another for the operand designating what index we should use to select
     // the constant we want to load.
     (*program_counter)++;
-
     size_t pool_index = 1;
     // the (unsigned char) cast is necessary to remember the operand in the code is
     // unsigned. remember the second program_counter increment here
@@ -106,12 +101,10 @@ void iload_helper(stack_t *stack, size_t *program_counter, method_t *method,
     // Loads a local and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
-
     u1 first_operand = 0;
     // remember the second program_counter increment here
     first_operand = (unsigned char) method->code.code[(*program_counter)++];
-    int32_t push_result = stack_push(stack, locals[(size_t) first_operand]);
-    assert(push_result == 1);
+    assert(stack_push(stack, locals[(size_t) first_operand]) == 1);
 }
 
 void aload_helper(stack_t *stack, size_t *program_counter, method_t *method,
@@ -119,12 +112,14 @@ void aload_helper(stack_t *stack, size_t *program_counter, method_t *method,
     // Loads a local and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
-
-    u1 first_operand = 0;
+    // u1 first_operand = 0;
     // remember the second program_counter increment here
-    first_operand = (unsigned char) method->code.code[(*program_counter)++];
-    int32_t push_result = stack_push(stack, locals[(size_t) first_operand]);
-    assert(push_result == 1);
+    // first_operand = (unsigned char) method->code.code[(*program_counter)++];
+    assert(
+        stack_push(
+            stack,
+            locals[(size_t)((unsigned char) method->code.code[(*program_counter)++])]) ==
+        1);
 }
 
 void iload_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_counter,
@@ -132,9 +127,7 @@ void iload_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_co
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
-    size_t locals_index = opcode - i_iload_0;
-    int32_t push_result = stack_push(stack, locals[locals_index]);
-    assert(push_result == 1);
+    assert(stack_push(stack, locals[opcode - i_iload_0]) == 1);
 }
 
 void aload_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_counter,
@@ -142,26 +135,26 @@ void aload_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_co
     // Loads a local_n instruction where n in {0,1,2,3,4} and pushes it onto the stack
     // increment the program_counter for the instruction itself
     (*program_counter)++;
-    size_t locals_index = opcode - i_aload_0;
-    int32_t push_result = stack_push(stack, locals[locals_index]);
-    assert(push_result == 1);
+    // size_t locals_index = opcode - i_aload_0;
+    // int32_t push_result = stack_push(stack, locals[locals_index]);
+    assert(stack_push(stack, locals[opcode - i_aload_0]) == 1);
 }
 
 void iaload_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
     (*program_counter)++;
 
     int32_t index = 0;
-    int32_t pop_result = stack_pop(stack, &index);
-    assert(pop_result == 1);
+    // int32_t pop_result = stack_pop(stack, &index);
+    assert(stack_pop(stack, &index) == 1);
     int32_t reference = 0;
-    pop_result = stack_pop(stack, &reference);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &reference);
+    assert(stack_pop(stack, &reference) == 1);
 
     int32_t *array = heap_get(heap, reference);
     assert(index < array[0]);
     int32_t value = array[index + 1];
-    int32_t push_result = stack_push(stack, value);
-    assert(push_result == 1);
+    // int32_t push_result = stack_push(stack, value);
+    assert(stack_push(stack, value) == 1);
 }
 
 void istore_helper(stack_t *stack, size_t *program_counter, method_t *method,
@@ -175,8 +168,8 @@ void istore_helper(stack_t *stack, size_t *program_counter, method_t *method,
     // remember the second program_counter increment here
     first_operand = (unsigned char) method->code.code[(*program_counter)++];
     int32_t value = 0;
-    int32_t pop_result = stack_pop(stack, &value);
-    assert(pop_result == 1);
+    // int32_t pop_result = stack_pop(stack, &value);
+    assert(stack_pop(stack, &value) == 1);
 
     locals[first_operand] = value;
 }
@@ -192,8 +185,7 @@ void astore_helper(stack_t *stack, size_t *program_counter, method_t *method,
     // remember the second program_counter increment here
     first_operand = (unsigned char) method->code.code[(*program_counter)++];
     int32_t reference = 0;
-    int32_t pop_result = stack_pop(stack, &reference);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &reference) == 1);
 
     locals[first_operand] = reference;
 }
@@ -205,8 +197,7 @@ void istore_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_c
     (*program_counter)++;
     size_t locals_index = (size_t) opcode - i_istore_0;
     int32_t value = 0;
-    int32_t pop_result = stack_pop(stack, &value);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &value) == 1);
 
     locals[locals_index] = value;
 }
@@ -218,8 +209,7 @@ void astore_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_c
     (*program_counter)++;
     size_t locals_index = (size_t) opcode - i_astore_0;
     int32_t reference = 0;
-    int32_t pop_result = stack_pop(stack, &reference);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &reference) == 1);
 
     locals[locals_index] = reference;
 }
@@ -227,14 +217,14 @@ void astore_n_helper(jvm_instruction_t opcode, stack_t *stack, size_t *program_c
 void iastore_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
     (*program_counter)++;
     int32_t value = 0;
-    int32_t pop_result = stack_pop(stack, &value);
-    assert(pop_result == 1);
+    // int32_t pop_result = stack_pop(stack, &value);
+    assert(stack_pop(stack, &value) == 1);
     int32_t index = 0;
-    pop_result = stack_pop(stack, &index);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &index);
+    assert(stack_pop(stack, &index) == 1);
     int32_t reference = 0;
-    pop_result = stack_pop(stack, &reference);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &reference);
+    assert(stack_pop(stack, &reference) == 1);
 
     int32_t *array = heap_get(heap, reference);
     assert(index < array[0]);
@@ -244,13 +234,9 @@ void iastore_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
 void dup_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t value = 0;
-    int32_t pop_result = stack_pop(stack, &value);
-    assert(pop_result == 1);
-    int32_t push_result = 0;
-    push_result = stack_push(stack, value);
-    assert(push_result == 1);
-    push_result = stack_push(stack, value);
-    assert(push_result == 1);
+    assert(stack_pop(stack, &value) == 1);
+    assert(stack_push(stack, value) == 1);
+    assert(stack_push(stack, value) == 1);
 }
 
 void iadd_helper(stack_t *stack, size_t *program_counter) {
@@ -259,16 +245,12 @@ void iadd_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand + second_operand);
-    assert(push_result == 1);
+    assert(stack_push(stack, first_operand + second_operand) == 1);
 }
 
 void isub_helper(stack_t *stack, size_t *program_counter) {
@@ -277,16 +259,12 @@ void isub_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand - second_operand);
-    assert(push_result == 1);
+    assert(stack_push(stack, first_operand - second_operand) == 1);
 }
 
 void imul_helper(stack_t *stack, size_t *program_counter) {
@@ -295,16 +273,12 @@ void imul_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand * second_operand);
-    assert(push_result == 1);
+    assert(stack_push(stack, first_operand * second_operand) == 1);
 }
 
 void idiv_helper(stack_t *stack, size_t *program_counter) {
@@ -313,16 +287,16 @@ void idiv_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand / second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, first_operand / second_operand);
+    assert(stack_push(stack, first_operand / second_operand) == 1);
 }
 
 void irem_helper(stack_t *stack, size_t *program_counter) {
@@ -331,16 +305,16 @@ void irem_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand % second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, first_operand % second_operand);
+    assert(stack_push(stack, first_operand % second_operand) == 1);
 }
 
 void ineg_helper(stack_t *stack, size_t *program_counter) {
@@ -348,13 +322,13 @@ void ineg_helper(stack_t *stack, size_t *program_counter) {
     // increment the program counter by one, as add doesn't take any operands
     (*program_counter)++;
     int32_t first_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, -first_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, -first_operand);
+    assert(stack_push(stack, -first_operand) == 1);
 }
 
 void ishl_helper(stack_t *stack, size_t *program_counter) {
@@ -363,16 +337,16 @@ void ishl_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand << second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, first_operand << second_operand);
+    assert(stack_push(stack, first_operand << second_operand) == 1);
 }
 
 void ishr_helper(stack_t *stack, size_t *program_counter) {
@@ -381,16 +355,16 @@ void ishr_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand >> second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, first_operand >> second_operand);
+    assert(stack_push(stack, first_operand >> second_operand) == 1);
 }
 
 void iushr_helper(stack_t *stack, size_t *program_counter) {
@@ -399,16 +373,16 @@ void iushr_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, ((unsigned) first_operand) >> second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, ((unsigned) first_operand) >> second_operand);
+    assert(stack_push(stack, ((unsigned) first_operand) >> second_operand) == 1);
 }
 
 void iand_helper(stack_t *stack, size_t *program_counter) {
@@ -417,16 +391,16 @@ void iand_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand & second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, first_operand & second_operand);
+    assert(stack_push(stack, first_operand & second_operand) == 1);
 }
 
 void ior_helper(stack_t *stack, size_t *program_counter) {
@@ -435,16 +409,16 @@ void ior_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand | second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, first_operand | second_operand);
+    assert(stack_push(stack, first_operand | second_operand) == 1);
 }
 
 void ixor_helper(stack_t *stack, size_t *program_counter) {
@@ -453,16 +427,16 @@ void ixor_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter)++;
     int32_t first_operand = 0;
     int32_t second_operand = 0;
-    int32_t pop_result, push_result;
+    // int32_t pop_result, push_result;
     // pop our second operand (pushed to the stack last).
-    pop_result = stack_pop(stack, &second_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &second_operand);
+    assert(stack_pop(stack, &second_operand) == 1);
     // pop our first operand
-    pop_result = stack_pop(stack, &first_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &first_operand);
+    assert(stack_pop(stack, &first_operand) == 1);
     // push the result back on to the stack.
-    push_result = stack_push(stack, first_operand ^ second_operand);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, first_operand ^ second_operand);
+    assert(stack_push(stack, first_operand ^ second_operand) == 1);
 }
 
 void iinc_helper(size_t *program_counter, method_t *method, int32_t *locals) {
@@ -516,10 +490,10 @@ void jump_one_op_helper(stack_t *stack, size_t *program_counter, method_t *metho
     (*program_counter)++;
     *jump_offset = jump_offset_helper(program_counter, method);
 
-    int32_t pop_result = 0;
+    // int32_t pop_result = 0;
     // pop the first stack operand off the top of the stack
-    pop_result = stack_pop(stack, first_stack_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, first_stack_operand);
+    assert(stack_pop(stack, first_stack_operand) == 1);
 }
 
 void jump_two_ops_helper(stack_t *stack, size_t *program_counter, method_t *method,
@@ -528,13 +502,13 @@ void jump_two_ops_helper(stack_t *stack, size_t *program_counter, method_t *meth
     (*program_counter)++;
     *jump_offset = jump_offset_helper(program_counter, method);
 
-    int32_t pop_result = 0;
+    // int32_t pop_result = 0;
     // pop the second stack operand off the top of the stack
-    pop_result = stack_pop(stack, second_stack_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, second_stack_operand);
+    assert(stack_pop(stack, second_stack_operand) == 1);
     // pop the first stack operand off the top of the stack
-    pop_result = stack_pop(stack, first_stack_operand);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, first_stack_operand);
+    assert(stack_pop(stack, first_stack_operand) == 1);
 }
 
 void ifeq_helper(stack_t *stack, size_t *program_counter, method_t *method) {
@@ -784,10 +758,10 @@ void goto_helper(size_t *program_counter, method_t *method) {
 void ireturn_helper(stack_t *stack, size_t *program_counter, method_t *method,
                     optional_value_t *result) {
     (*program_counter)++;
-    int32_t pop_result = 0;
+    // int32_t pop_result = 0;
     int32_t value = 0;
-    pop_result = stack_pop(stack, &value);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &value);
+    assert(stack_pop(stack, &value) == 1);
 
     result->has_value = true;
     result->value = value;
@@ -817,8 +791,9 @@ void invokevirtual_helper(stack_t *stack, size_t *program_counter) {
     // three).
     (*program_counter)++;
 
-    int32_t pop_result, value;
-    pop_result = stack_pop(stack, &value);
+    int32_t value = 0;
+    // pop_result = stack_pop(stack, &value);
+    assert(stack_pop(stack, &value) == 1);
     fprintf(stdout, "%d\n", value);
     (*program_counter) += TWO_OPERAND_OFFSET;
 }
@@ -840,18 +815,17 @@ void invokestatic_helper(stack_t *stack, size_t *program_counter, method_t *meth
     heap_add(heap, locals_ptr);
     u2 num_args = get_number_of_parameters(sub_method);
 
-    int32_t pop_result = 0;
+    // int32_t pop_result = 0;
     int32_t popped_value = 0;
     for (size_t i = 0; i < num_args; i++) {
-        pop_result = stack_pop(stack, &popped_value);
-        assert(pop_result == 1);
+        assert(stack_pop(stack, &popped_value) == 1);
         locals_ptr[num_args - (i + 1)] = popped_value;
     }
 
     optional_value_t returned_value = execute(sub_method, locals_ptr, class, heap);
     if (returned_value.has_value == true) {
-        int32_t push_result = stack_push(stack, returned_value.value);
-        assert(push_result == 1);
+        // int32_t push_result = stack_push(stack, returned_value.value);
+        assert(stack_push(stack, returned_value.value) == 1);
     }
 }
 
@@ -861,29 +835,28 @@ void newarray_helper(stack_t *stack, size_t *program_counter, method_t *method,
     u1 first_operand = method->code.code[(*program_counter)++];
     assert(first_operand == 10);
 
-    int32_t pop_result = 0;
-    int32_t push_result = 0;
+    // int32_t pop_result = 0;
+    // int32_t push_result = 0;
     int32_t count = 0;
-    pop_result = stack_pop(stack, &count);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &count);
+    assert(stack_pop(stack, &count) == 1);
     int32_t *new_array = calloc(count + 1, sizeof(int32_t));
     // we store the size of the array as an additional entry at the front.
     new_array[0] = count;
-    push_result = stack_push(stack, heap_add(heap, new_array));
-    assert(push_result == 1);
+    assert(stack_push(stack, heap_add(heap, new_array)) == 1);
 }
 
 void arraylength_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
     (*program_counter)++;
 
-    int32_t pop_result = 0;
-    int32_t push_result = 0;
+    // int32_t pop_result = 0;
+    // int32_t push_result = 0;
     int32_t reference = 0;
-    pop_result = stack_pop(stack, &reference);
-    assert(pop_result == 1);
+    // pop_result = stack_pop(stack, &reference);
+    assert(stack_pop(stack, &reference) == 1);
     int32_t *array = heap_get(heap, reference);
-    push_result = stack_push(stack, array[0]);
-    assert(push_result == 1);
+    // push_result = stack_push(stack, array[0]);
+    assert(stack_push(stack, array[0]) == 1);
 }
 
 void areturn_helper(stack_t *stack, size_t *program_counter, method_t *method,
@@ -891,10 +864,9 @@ void areturn_helper(stack_t *stack, size_t *program_counter, method_t *method,
     (*program_counter)++;
 
     int32_t reference = 0;
-    int32_t pop_result = 0;
-
-    pop_result = stack_pop(stack, &reference);
-    assert(pop_result == 1);
+    // int32_t pop_result = 0;
+    // pop_result = stack_pop(stack, &reference);
+    assert(stack_pop(stack, &reference) == 1);
 
     return_value->has_value = true;
     return_value->value = reference;
@@ -1129,19 +1101,18 @@ void opcode_helper(stack_t *stack, size_t program_counter, method_t *method,
             heap_add(heap, locals_ptr);
             u2 num_args = get_number_of_parameters(sub_method);
 
-            int32_t pop_result = 0;
+            // int32_t pop_result = 0;
             int32_t popped_value = 0;
             for (size_t i = 0; i < num_args; i++) {
-                pop_result = stack_pop(stack, &popped_value);
-                assert(pop_result == 1);
+                // pop_result = stack_pop(stack, &popped_value);
+                assert(stack_pop(stack, &popped_value) == 1);
                 locals_ptr[num_args - (i + 1)] = popped_value;
             }
 
             optional_value_t returned_value =
                 execute(sub_method, locals_ptr, class, heap);
             if (returned_value.has_value == true) {
-                int32_t push_result = stack_push(stack, returned_value.value);
-                assert(push_result == 1);
+                assert(stack_push(stack, returned_value.value) == 1);
             }
             // invokestatic_helper(stack, &program_counter, method, class, heap);
             break;
@@ -1153,3 +1124,5 @@ void opcode_helper(stack_t *stack, size_t program_counter, method_t *method,
             break;
     }
 }
+
+#endif /* OPCODES_H */

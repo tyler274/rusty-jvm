@@ -83,7 +83,7 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
                 iload_helper(stack, &program_counter, method, locals);
                 break;
             case i_aload:
-                // aload_helper();
+                aload_helper(stack, &program_counter, method, locals);
                 break;
             case i_iload_0:
             case i_iload_1:
@@ -95,17 +95,17 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
             case i_aload_1:
             case i_aload_2:
             case i_aload_3:
-                // aload_n_helper();
+                aload_n_helper(opcode, stack, &program_counter, locals);
                 break;
 
             case i_iaload:
-                // iaload_helper();
+                iaload_helper(stack, &program_counter, heap);
                 break;
             case i_istore:
                 istore_helper(stack, &program_counter, method, locals);
                 break;
             case i_astore:
-                // astore_helper();
+                astore_helper(stack, &program_counter, method, locals);
                 break;
 
             case i_istore_0:
@@ -121,7 +121,7 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
                 astore_n_helper(opcode, stack, &program_counter, locals);
                 break;
             case i_iastore:
-                // iastore_helper();
+                iastore_helper(stack, &program_counter, heap);
                 break;
             case i_dup:
                 dup_helper(stack, &program_counter);
@@ -262,19 +262,17 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
                     calloc(sub_method->code.max_locals, sizeof(int32_t));
                 u2 num_args = get_number_of_parameters(sub_method);
 
-                int32_t pop_result = 0;
                 int32_t popped_value = 0;
                 for (size_t i = 0; i < num_args; i++) {
-                    pop_result = stack_pop(stack, &popped_value);
-                    assert(pop_result == 1);
+                    assert(stack_pop(stack, &popped_value) == 1);
                     locals_ptr[num_args - (i + 1)] = popped_value;
                 }
 
                 optional_value_t returned_value =
                     execute(sub_method, locals_ptr, class, heap);
                 if (returned_value.has_value == true) {
-                    int32_t push_result = stack_push(stack, returned_value.value);
-                    assert(push_result == 1);
+                    // int32_t push_result = stack_push(stack, returned_value.value);
+                    assert(stack_push(stack, returned_value.value) == 1);
                 }
                 free(locals_ptr);
                 // invokestatic_helper(stack, &program_counter, method, class, heap);
@@ -282,16 +280,16 @@ optional_value_t execute(method_t *method, int32_t *locals, class_file_t *class,
             }
 
             case i_newarray:
-                // newarray_helper();
-                // break;
+                newarray_helper(stack, &program_counter, method, heap);
+                break;
 
             case i_arraylength:
-                // arraylength_helper();
-                // break;
+                arraylength_helper(stack, &program_counter, heap);
+                break;
 
             case i_areturn:
-                // areturn_helper();
-                // break;
+                areturn_helper(stack, &program_counter, method, &result);
+                break;
             default:
                 fprintf(stderr, "Running unimplemented opcode: %d\n\n", opcode);
                 assert(false);
