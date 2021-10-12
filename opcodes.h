@@ -731,6 +731,13 @@ void invokevirtual_helper(stack_t *stack, size_t *program_counter) {
     (*program_counter) += TWO_OPERAND_OFFSET;
 }
 
+void not_implemented_helper(size_t *program_counter, jvm_instruction_t *opcode) {
+    (*program_counter)++;
+    fprintf(stderr, "Running unimplemented opcode: %d\n\n", *opcode);
+    (*program_counter)++;
+    assert(false);
+}
+
 // this function needs to be always inlined into opcode_helper() and from there execute()
 // or the stack will overflow on the Recursion test.
 __attribute__((always_inline)) inline void invokestatic_helper(stack_t *stack,
@@ -739,60 +746,97 @@ __attribute__((always_inline)) inline void invokestatic_helper(stack_t *stack,
                                                                class_file_t *class,
                                                                heap_t *heap) {
     (*program_counter)++;
-
+    // the instruction takes two operands from the two opcodes that follow it in the
+    // code array. It then recursively executes the submethod indexed by the fusion of
+    // those two operand unsigned bytes.
     u1 first_operand = 0;
     u1 second_operand = 0;
     // remember the second and third program_counter increments here
     first_operand = method->code.code[(*program_counter)++];
     second_operand = method->code.code[(*program_counter)++];
+
+    // fuse the unsigned bytes to get an index that we can use to get a pointer to the sub
+    // method we want to recursively execute.
     u2 sub_method_index = (first_operand << 8) | second_operand;
     method_t *sub_method = find_method_from_index(sub_method_index, class);
+
+    // double check that the sub method we got isn't NULL
     assert(sub_method != NULL);
 
+    // the caller of execute needs to allocate the local array using the information
+    // contained in the sub method's code's max_locals variable.
     int32_t *locals_ptr = calloc(sub_method->code.max_locals, sizeof(int32_t));
+
+    // to find out how many arguments there are to the submethod we call this helper
+    // function and store the result in an unsigned short (uint16).
     u2 num_args = get_number_of_parameters(sub_method);
 
+    // for each argument to the sub method we pop the argument's value off the stack and
+    // then insert it into our sub method's locals array.
     int32_t popped_value = 0;
     for (size_t i = 0; i < num_args; i++) {
         assert(stack_pop(stack, &popped_value) == 1);
         locals_ptr[num_args - (i + 1)] = popped_value;
     }
 
+    // execute our sub method by recursively calling execute.
     optional_value_t returned_value = execute(sub_method, locals_ptr, class, heap);
+
+    // if our sub method has a return value, we push that value onto the stack.
     if (returned_value.has_value == true) {
         assert(stack_push(stack, returned_value.value) == 1);
     }
+    // after our sub method returns we can free its locals array's memory. The stack for
+    // our sub method is initialized inside the execute function.
     free(locals_ptr);
 }
 
 void newarray_helper(stack_t *stack, size_t *program_counter, method_t *method,
                      heap_t *heap) {
     (*program_counter)++;
+    // creates a new int32_t array and stores it on the heap.
+
+    // the operand to this opcode is just the type of the array, in our cases it will
+    // always be '10' to indicate its a signed 32bit integer array.
     u1 first_operand = method->code.code[(*program_counter)++];
     assert(first_operand == 10);
+    // get the size of the new array by popping the count value off the stack.
     int32_t count = 0;
     assert(stack_pop(stack, &count) == 1);
+    // allocate and initialize an array of size 'count + 1', we use the first member of
+    // the array to store the array's size.
     int32_t *new_array = calloc(count + 1, sizeof(int32_t));
     // we store the size of the array as an additional entry at the front.
     new_array[0] = count;
+    // add the new array to the heap, and then push the returned reference to it onto the
+    // stack.
     assert(stack_push(stack, heap_add(heap, new_array)) == 1);
 }
 
 void arraylength_helper(stack_t *stack, size_t *program_counter, heap_t *heap) {
     (*program_counter)++;
+    // pops a reference to an array on the heap off of the stack and then pushes that
+    // array's length back on to the stack.
     int32_t reference = 0;
     assert(stack_pop(stack, &reference) == 1);
     int32_t *array = heap_get(heap, reference);
+    // We store the size of the array in the first entry.
     assert(stack_push(stack, array[0]) == 1);
 }
 
 void areturn_helper(stack_t *stack, size_t *program_counter, method_t *method,
                     optional_value_t *return_value) {
     (*program_counter)++;
+    // returns a reference to an array.
     int32_t reference = 0;
+    // pop the reference to the array off of the stack and then set the return value to
+    // it.
     assert(stack_pop(stack, &reference) == 1);
     return_value->has_value = true;
     return_value->value = reference;
+
+    // move the program counter to the end of the method's code to break the while loop
+    // and return.
     (*program_counter) = method->code.code_length;
 }
 
@@ -998,10 +1042,9 @@ __attribute__((always_inline)) inline void opcode_helper(
             invokevirtual_helper(stack, program_counter);
             break;
 
-        case i_invokestatic: {
+        case i_invokestatic:
             invokestatic_helper(stack, program_counter, method, class, heap);
             break;
-        }
 
         case i_newarray:
             newarray_helper(stack, program_counter, method, heap);
@@ -1015,9 +1058,7 @@ __attribute__((always_inline)) inline void opcode_helper(
             areturn_helper(stack, program_counter, method, result);
             break;
         default:
-            fprintf(stderr, "Running unimplemented opcode: %d\n\n", opcode);
-            (*program_counter)++;
-            assert(false);
+            not_implemented_helper(program_counter, &opcode);
             break;
     }
 }
