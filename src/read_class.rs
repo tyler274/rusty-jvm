@@ -133,27 +133,31 @@ pub type ClassFile = Rc<RefCell<BufReader<File>>>;
 
 /*
  * Functions for reading unsigned big-endian integers. We can't read directly
- * into a u16 or u34 variable because x86 stores integers in little-endian.
+ * into a u16 or u32 variable because x86 stores integers in little-endian.
  */
 
 pub fn read_u8(class_file: ClassFile) -> u8 {
     let mut value: [u8; 1] = [0];
-    let result = class_file.borrow_mut().read(&mut value).unwrap();
-    if result == 0 {
-        eprintln!("Reached end of file prematurely");
-        std::process::exit(1);
-    }
-    return value[0];
+    class_file.borrow_mut().read_exact(&mut value).unwrap();
+    u8::from_be_bytes(value)
 }
 
 pub fn read_u16(class_file: ClassFile) -> u16 {
-    return ((read_u8(class_file.clone()) as u16 as i32) << 8 as i32
-        | read_u8(class_file.clone()) as i32) as u16;
+    let mut value: [u8; 2] = [0; 2];
+    class_file.borrow_mut().read_exact(&mut value).unwrap();
+    u16::from_be_bytes(value)
 }
 
 pub fn read_u32(class_file: ClassFile) -> u32 {
-    return (read_u16(class_file.clone()) as u32) << 16 as i32
-        | read_u16(class_file.clone()) as u32;
+    let mut value: [u8; 4] = [0; 4];
+    class_file.borrow_mut().read_exact(&mut value).unwrap();
+    u32::from_be_bytes(value)
+}
+
+pub fn read_bytes(class_file: ClassFile, length: usize) -> Vec<u8> {
+    let mut value = vec![0_u8; length];
+    class_file.borrow_mut().read_exact(&mut value).unwrap();
+    value
 }
 
 pub fn constant_pool_size(constant_pool: Vec<cp_info>) -> u16 {
@@ -163,16 +167,17 @@ pub fn constant_pool_size(constant_pool: Vec<cp_info>) -> u16 {
         i += 1;
         constant = constant_pool[i].clone()
     }
-    return i as u16;
+    i as u16
 }
 
 pub fn get_constant(constant_pool: Vec<cp_info>, index: u16) -> cp_info {
-    if 0 < index && index <= constant_pool_size(constant_pool.clone()) {
+    let const_size = constant_pool_size(constant_pool.clone());
+    if 0 < index && index <= const_size {
     } else {
         eprintln!("Invalid constant pool index");
     }
     // Convert 1-indexed index to 0-indexed index
-    return constant_pool[((index as i32) - 1) as usize].clone();
+    constant_pool[((index as i32) - 1) as usize].clone()
 }
 
 pub fn get_method_name_and_type(constant_pool: Vec<cp_info>, index: u16) -> Option<Box<cp_info_t>> {
@@ -185,7 +190,7 @@ pub fn get_method_name_and_type(constant_pool: Vec<cp_info>, index: u16) -> Opti
 
     match method_constant.info.as_deref() {
         Some(cp_info_t::CONSTANT_FieldOrMethodref_info {
-            class_index,
+            class_index: _,
             name_and_type_index,
         }) => {
             let name_and_type_constant: cp_info = get_constant(constant_pool, *name_and_type_index);
@@ -197,27 +202,25 @@ pub fn get_method_name_and_type(constant_pool: Vec<cp_info>, index: u16) -> Opti
                 std::process::exit(1);
             }
             match (name_and_type_constant).info.as_deref() {
-                Some(cp_info_t::CONSTANT_NameAndType_info { .. }) => {
-                    return name_and_type_constant.info;
-                }
+                Some(cp_info_t::CONSTANT_NameAndType_info { .. }) => name_and_type_constant.info,
                 _ => {
                     eprintln!("Expected a NameAndType");
                     std::process::exit(1);
                 }
-            };
+            }
         }
         _ => {
             eprintln!("Expected a MethodRef");
             std::process::exit(1);
         }
-    };
+    }
     // return None;
 }
 
 pub fn get_number_of_parameters(method: &method_t) -> u16 {
     // Type descriptors will always have the length ( + #params + ) + return type
-    let mut end: usize = 0;
-    let mut start: usize = 0;
+    let end: usize;
+    let mut start: usize;
     match &(*method).descriptor {
         cp_info_t::CONSTANT_Utf8_info { descriptor: d } => {
             end = d.find(')').unwrap();
@@ -231,19 +234,19 @@ pub fn get_number_of_parameters(method: &method_t) -> u16 {
                 params = params.wrapping_add(1);
                 start += 1;
             }
-            return params;
+            params
         }
         _ => {
             eprintln!("Method descriptor should be a utf8 string");
             std::process::exit(1);
         }
-    };
+    }
 }
 
 pub fn find_method(name: &str, descriptor: &str, class: &class_file_t) -> Option<method_t> {
     let mut i: usize = 0;
     let mut method: &method_t = &(*class).methods[i];
-    while (*method).name != "" {
+    while !(*method).name.is_empty() {
         if (*method).name == name
             && descriptor
                 == match &(*method).descriptor {
@@ -259,7 +262,7 @@ pub fn find_method(name: &str, descriptor: &str, class: &class_file_t) -> Option
         i += 1;
         method = &(*class).methods[i];
     }
-    return None;
+    None
 }
 
 pub fn find_method_from_index(index: u16, class: &class_file_t) -> Option<method_t> {
@@ -268,7 +271,7 @@ pub fn find_method_from_index(index: u16, class: &class_file_t) -> Option<method
             Some(cp_info_t::CONSTANT_NameAndType_info {
                 name_index: n,
                 descriptor_index: d,
-            }) => (n.clone(), d.clone()),
+            }) => (*n, *d),
             _ => {
                 eprintln!("Expected a name and type");
                 std::process::exit(1);
@@ -296,7 +299,7 @@ pub fn find_method_from_index(index: u16, class: &class_file_t) -> Option<method
             std::process::exit(1);
         }
     };
-    return find_method(&n, &d, class);
+    find_method(&n, &d, class)
 }
 
 pub fn get_class_header(class_file: ClassFile) -> class_header_t {
@@ -308,28 +311,26 @@ pub fn get_class_header(class_file: ClassFile) -> class_header_t {
     header.magic = read_u32(class_file.clone());
     assert!(header.magic == CLASS_MAGIC);
     header.major_version = read_u16(class_file.clone());
-    header.minor_version = read_u16(class_file.clone());
-    return header;
+    header.minor_version = read_u16(class_file);
+    header
 }
 
 pub fn get_constant_pool(class_file: ClassFile) -> Vec<cp_info> {
     // Constant pool count includes unused constant at index 0
     let mut constant_pool_count: u16 = (read_u16(class_file.clone()) as i32 - 1) as u16;
     let mut constant_pool: Vec<cp_info> = Vec::with_capacity(constant_pool_count as usize + 1);
-    let mut i: usize = 0;
-    let mut constant: &mut cp_info = &mut constant_pool[i];
+
     while constant_pool_count > 0 {
+        let mut constant: cp_info = cp_info {
+            tag: cp_info_tag::CONSTANT_Utf8,
+            info: None,
+        };
         constant.tag = cp_info_tag::try_from(read_u8(class_file.clone())).unwrap();
         match constant.tag {
             cp_info_tag::CONSTANT_Utf8 => {
                 let length: u16 = read_u16(class_file.clone());
-                let mut info: String = String::with_capacity(length as usize + 1);
-                let mut str_buf: Vec<u8> = Vec::with_capacity(length as usize);
-                class_file
-                    .borrow_mut()
-                    .read_exact(&mut str_buf[0..length as usize])
-                    .unwrap();
-                info = String::from_utf8(str_buf).unwrap();
+                let mut info =
+                    String::from_utf8(read_bytes(class_file.clone(), length as usize)).unwrap();
                 info.push('\u{0}');
                 let info_struct = Box::new(cp_info_t::CONSTANT_Utf8_info { descriptor: info });
                 constant.info = Some(info_struct)
@@ -365,13 +366,17 @@ pub fn get_constant_pool(class_file: ClassFile) -> Vec<cp_info> {
                 std::process::exit(1);
             }
         }
-        i += 1;
-        constant = &mut constant_pool[i];
+        // i += 1;
+        constant_pool.push(constant.clone());
+
         constant_pool_count = constant_pool_count.wrapping_sub(1)
     }
     // Mark end of array with NULL info
-    constant.info = None;
-    return constant_pool;
+    constant_pool.push(cp_info {
+        tag: cp_info_tag::CONSTANT_Integer,
+        info: None,
+    });
+    constant_pool
 }
 
 pub fn get_class_info(class_file: ClassFile) -> class_info_t {
@@ -389,7 +394,7 @@ pub fn get_class_info(class_file: ClassFile) -> class_info_t {
         std::process::exit(1);
     }
 
-    let fields_count: u16 = read_u16(class_file.clone());
+    let fields_count: u16 = read_u16(class_file);
     if fields_count != 0 {
         eprintln!("This VM does not support fields.");
         std::process::exit(1);
@@ -412,13 +417,11 @@ pub fn read_method_attributes(
         };
         ainfo.attribute_name_index = read_u16(class_file.clone());
         ainfo.attribute_length = read_u32(class_file.clone());
-        let attribute_end: i64 = (class_file.borrow_mut().stream_position().unwrap() as i64
-            + ainfo.attribute_length as i64)
-            .try_into()
-            .unwrap();
+        let attribute_end =
+            class_file.borrow_mut().stream_position().unwrap() + ainfo.attribute_length as u64;
         let type_constant: cp_info =
             get_constant(constant_pool.clone(), ainfo.attribute_name_index);
-        if type_constant.tag as u32 != cp_info_tag::CONSTANT_Utf8 as i32 as u32 {
+        if type_constant.tag != cp_info_tag::CONSTANT_Utf8 {
             eprintln!("Expected a UTF8");
             std::process::exit(1);
         }
@@ -426,8 +429,9 @@ pub fn read_method_attributes(
             Some(cp_info_t::CONSTANT_Utf8_info { descriptor }) => descriptor,
             _ => "",
         };
-        if type_constant_info == "Code" {
-            if found_code == true {
+        println!("{}", type_constant_info);
+        if *type_constant_info == *"Code" {
+            if found_code {
                 eprintln!("Duplicate method code");
                 std::process::exit(1);
             }
@@ -436,12 +440,9 @@ pub fn read_method_attributes(
             code.max_stack = read_u16(class_file.clone());
             code.max_locals = read_u16(class_file.clone());
             code.code_length = read_u32(class_file.clone());
-            code.code = Vec::with_capacity(code.code_length as usize);
+            // code.code = Vec::with_capacity(code.code_length as usize);
 
-            class_file
-                .borrow_mut()
-                .read_exact(&mut code.code[..code.code_length as usize])
-                .unwrap();
+            code.code = read_bytes(class_file.clone(), code.code_length as usize);
         }
 
         // Skip the rest of the attribute
@@ -451,18 +452,30 @@ pub fn read_method_attributes(
             .unwrap();
         attributes = attributes.wrapping_sub(1)
     }
-    if found_code == false {
+    if !found_code {
         eprintln!("Missing method code");
         std::process::exit(1);
     }
 }
 
-pub fn get_methods(class_file: ClassFile, constant_pool: Vec<cp_info>) -> Vec<method_t> {
+pub fn get_methods(class_file: ClassFile, constant_pool: &Vec<cp_info>) -> Vec<method_t> {
     let mut method_count: u16 = read_u16(class_file.clone());
     let mut methods: Vec<method_t> = Vec::with_capacity((method_count + 1).into());
-    let mut i: usize = 0;
-    let mut method: &mut method_t = &mut methods[i];
+    // let mut i: usize = 0;
+    // let mut method: &mut method_t = &mut methods[i];
     while method_count > 0 {
+        let mut method = method_t {
+            name: String::new(),
+            descriptor: cp_info_t::CONSTANT_Utf8_info {
+                descriptor: String::new(),
+            },
+            code: code_t {
+                max_stack: 0,
+                max_locals: 0,
+                code_length: 0,
+                code: Vec::new(),
+            },
+        };
         let mut info: method_info = method_info {
             access_flags: 0,
             name_index: 0,
@@ -501,17 +514,28 @@ pub fn get_methods(class_file: ClassFile, constant_pool: Vec<cp_info>) -> Vec<me
         }
         read_method_attributes(
             class_file.clone(),
-            &mut info,
+            &info,
             &mut method.code,
             constant_pool.clone(),
         );
-        i += 1;
-        method = &mut methods[i];
+        methods.push(method.clone());
         method_count = method_count.wrapping_sub(1)
     }
     // Mark end of array with NULL name
-    method.name = "".to_string();
-    return methods;
+    // method.name = "".to_string();
+    methods.push(method_t {
+        name: String::new(),
+        descriptor: cp_info_t::CONSTANT_Utf8_info {
+            descriptor: String::new(),
+        },
+        code: code_t {
+            max_stack: 0,
+            max_locals: 0,
+            code_length: 0,
+            code: Vec::new(),
+        },
+    });
+    methods
 }
 
 pub fn get_class(class_file: ClassFile) -> Rc<RefCell<class_file_t>> {
@@ -528,8 +552,7 @@ pub fn get_class(class_file: ClassFile) -> Rc<RefCell<class_file_t>> {
      * We don't need the result, but we need to skip past it. */
     get_class_info(class_file.clone());
     // Read the list of static methods
-    let meth_vec: Vec<method_t> =
-        get_methods(class_file.clone(), class.borrow().constant_pool.clone());
+    let meth_vec: Vec<method_t> = get_methods(class_file, &class.borrow().constant_pool.clone());
     class.borrow_mut().methods = meth_vec;
-    return class.clone();
+    class
 }

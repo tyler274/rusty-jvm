@@ -5,6 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(UDB) Arithmetic",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/rusty-jvm",
+            "args": [
+                "tests/Arithmetic.class"
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "udb",
+            "miDebuggerArgs": "",
+            "logging": {
+                "trace": false,
+                "traceResponse": false,
+                "engineLogging": false
+            },
+            "udb": "live",
+            "timezone": ""
+        },
+        {
             "name": "(GDB) jvm test1",
             "type": "cppdbg",
             "request": "launch",
@@ -164,7 +194,7 @@
             ],
             "preLaunchTask": "make jvm",
             "miDebuggerPath": "/usr/bin/gdb"
-        }
+        },
         {
             "name": "(GDB) jvm test8 arithmetic",
             "type": "cppdbg",

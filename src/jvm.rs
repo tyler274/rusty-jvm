@@ -18,53 +18,50 @@ pub type heap_t = Vec<Vec<i32>>;
 
 pub const TWO_OPERAND_OFFSET: usize = 2;
 
-pub const NEGATIVE_ONE: i32 = -1;
+// pub const NEGATIVE_ONE: i32 = -1;
 
-pub const ZERO: i32 = 0;
+// pub const ZERO: i32 = 0;
 
-pub const ONE: i32 = 1;
+// pub const ONE: i32 = 1;
 
-pub const TWO: i32 = 2;
+// pub const TWO: i32 = 2;
 
 pub const THREE: i32 = 3;
 
-pub const FOUR: i32 = 4;
+// pub const FOUR: i32 = 4;
 
-pub const FIVE: i32 = 5;
+// pub const FIVE: i32 = 5;
 
 pub fn iconst_helper(opcode: jvm_instruction_t, stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
-    assert!(stack_push(stack, (opcode as i32) - THREE) == true);
+    assert!(stack_push(stack, (opcode as i32) - THREE));
 }
 
 pub fn bipush_helper(stack: &mut stack_t, program_counter: &mut usize, method: &method_t) {
     *program_counter = (*program_counter).wrapping_add(1);
     let fresh0 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    assert!(stack_push(stack, (*method).code.code[fresh0] as i8 as i32,) == true);
+    assert!(stack_push(stack, (*method).code.code[fresh0] as i8 as i32,));
 }
 
 pub fn sipush_helper(stack: &mut stack_t, program_counter: &mut usize, method: &method_t) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut first_operand: u8 = 0;
-    let mut second_operand: u8 = 0;
     let fresh1 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    first_operand = (*method).code.code[fresh1 as usize];
+    let first_operand: u8 = (*method).code.code[fresh1 as usize];
     let fresh2 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    second_operand = (*method).code.code[fresh2];
-    let mut result: i16 = 0;
-    result = ((first_operand as i16 as i32) << 8 as i32 | second_operand as i32) as i16;
-    assert!(stack_push(stack, result as i32) == true);
+    let second_operand: u8 = (*method).code.code[fresh2];
+    let result: i16 = ((first_operand as i16 as i32) << 8_i32 | second_operand as i32) as i16;
+    assert!(stack_push(stack, result as i32));
 }
 
-pub fn constant_pool_helper(mut stack: &mut stack_t, mut pool_const: &cp_info) {
+pub fn constant_pool_helper(stack: &mut stack_t, pool_const: &cp_info) {
     assert!(pool_const.info.is_some());
     match pool_const.tag {
         cp_info_tag::CONSTANT_Integer => match pool_const.info.as_deref() {
             Some(cp_info_t::CONSTANT_Integer_info { bytes }) => {
-                assert!(stack_push(stack, *bytes as i32) == true)
+                assert!(stack_push(stack, *bytes as i32))
             }
             _ => {
                 eprintln!("Expected an integer");
@@ -76,24 +73,22 @@ pub fn constant_pool_helper(mut stack: &mut stack_t, mut pool_const: &cp_info) {
 }
 
 pub fn ldc_helper(
-    mut stack: &mut stack_t,
-    mut program_counter: &mut usize,
-    mut method: &method_t,
-    mut class: &class_file_t,
+    stack: &mut stack_t,
+    program_counter: &mut usize,
+    method: &method_t,
+    class: &class_file_t,
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut pool_index: usize = 1;
     let fresh3 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    pool_index = (*method).code.code[fresh3] as usize;
+    let pool_index = (*method).code.code[fresh3] as usize;
 
-    let mut pool_const: cp_info =
-        (*class).constant_pool[pool_index.wrapping_sub(1) as usize].clone();
+    let pool_const: cp_info = (*class).constant_pool[pool_index.wrapping_sub(1) as usize].clone();
     if (*class).constant_pool[pool_index.wrapping_sub(1) as usize]
         .info
         .is_some()
     {
-        constant_pool_helper(stack, &mut pool_const);
+        constant_pool_helper(stack, &pool_const);
     };
 }
 
@@ -101,68 +96,66 @@ pub fn iload_helper(
     stack: &mut stack_t,
     program_counter: &mut usize,
     method: &method_t,
-    locals: &Vec<i32>,
+    locals: &[i32],
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut first_operand: u8 = 0;
     let fresh4 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    first_operand = (*method).code.code[fresh4];
-    assert!(stack_push(stack, locals[first_operand as usize]) == true);
+    let first_operand: u8 = (*method).code.code[fresh4];
+    assert!(stack_push(stack, locals[first_operand as usize]));
 }
 
 pub fn aload_helper(
     stack: &mut stack_t,
     program_counter: &mut usize,
     method: &method_t,
-    locals: &Vec<i32>,
+    locals: &[i32],
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
     let fresh5 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    assert!(stack_push(stack, locals[(*method).code.code[fresh5] as usize],) == true);
+    assert!(stack_push(
+        stack,
+        locals[(*method).code.code[fresh5] as usize],
+    ));
 }
 
 pub fn iload_n_helper(
     opcode: jvm_instruction_t,
     stack: &mut stack_t,
     program_counter: &mut usize,
-    locals: &Vec<i32>,
+    locals: &[i32],
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    assert!(
-        stack_push(
-            stack,
-            locals[(opcode as usize).wrapping_sub(jvm_instruction_t::i_iload_0 as usize)]
-        ) == true
-    );
+    assert!(stack_push(
+        stack,
+        locals[(opcode as usize).wrapping_sub(jvm_instruction_t::i_iload_0 as usize)]
+    ));
 }
 
 pub fn aload_n_helper(
     opcode: jvm_instruction_t,
     stack: &mut stack_t,
     program_counter: &mut usize,
-    locals: &Vec<i32>,
+    locals: &[i32],
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    assert!(
-        stack_push(
-            stack,
-            locals[(opcode as usize).wrapping_sub(jvm_instruction_t::i_aload_0 as usize) as usize]
-        ) == true
-    );
+    assert!(stack_push(
+        stack,
+        locals[(opcode as usize).wrapping_sub(jvm_instruction_t::i_aload_0 as usize) as usize]
+    ));
 }
 
 pub fn iaload_helper(stack: &mut stack_t, program_counter: &mut usize, heap: &mut heap_t) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut index: i32 = 0;
-    assert!(stack_pop(stack, &mut index) == true);
+    assert!(stack_pop(stack, &mut index));
     let mut reference: i32 = 0;
-    assert!(stack_pop(stack, &mut reference) == true);
+    assert!(stack_pop(stack, &mut reference));
     let array: Vec<i32> = heap[reference as usize].clone();
     assert!((index as usize) < array.len());
     let value: i32 = array[index as usize];
-    assert!(stack_push(stack, value) == true);
+    assert!(stack_push(stack, value));
 }
 
 pub fn istore_helper(
@@ -172,12 +165,11 @@ pub fn istore_helper(
     locals: &mut Vec<i32>,
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut first_operand: u8 = 0;
     let fresh6 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    first_operand = (*method).code.code[fresh6];
+    let first_operand: u8 = (*method).code.code[fresh6];
     let mut value: i32 = 0;
-    assert!(stack_pop(stack, &mut value) == true);
+    assert!(stack_pop(stack, &mut value));
     locals[first_operand as usize] = value;
 }
 
@@ -188,12 +180,11 @@ pub fn astore_helper(
     locals: &mut Vec<i32>,
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut first_operand: u8 = 0;
     let fresh7 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    first_operand = (*method).code.code[fresh7];
+    let first_operand: u8 = (*method).code.code[fresh7];
     let mut reference: i32 = 0;
-    assert!(stack_pop(stack, &mut reference) == true);
+    assert!(stack_pop(stack, &mut reference));
     locals[first_operand as usize] = reference;
 }
 
@@ -204,35 +195,35 @@ pub fn istore_n_helper(
     locals: &mut Vec<i32>,
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut locals_index: usize =
+    let locals_index: usize =
         (opcode as usize).wrapping_sub(jvm_instruction_t::i_istore_0 as usize);
     let mut value: i32 = 0;
-    assert!(stack_pop(stack, &mut value) == true);
+    assert!(stack_pop(stack, &mut value));
     locals[locals_index] = value;
 }
 
 pub fn astore_n_helper(
-    mut opcode: jvm_instruction_t,
-    mut stack: &mut stack_t,
-    mut program_counter: &mut usize,
-    mut locals: &mut Vec<i32>,
+    opcode: jvm_instruction_t,
+    stack: &mut stack_t,
+    program_counter: &mut usize,
+    locals: &mut Vec<i32>,
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut locals_index: usize =
+    let locals_index: usize =
         (opcode as usize).wrapping_sub(jvm_instruction_t::i_astore_0 as usize);
     let mut reference: i32 = 0;
-    assert!(stack_pop(stack, &mut reference) == true);
+    assert!(stack_pop(stack, &mut reference));
     locals[locals_index] = reference;
 }
 
 pub fn iastore_helper(stack: &mut stack_t, program_counter: &mut usize, heap: &mut heap_t) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut value: i32 = 0;
-    assert!(stack_pop(stack, &mut value) == true);
+    assert!(stack_pop(stack, &mut value));
     let mut index: i32 = 0;
-    assert!(stack_pop(stack, &mut index) == true);
+    assert!(stack_pop(stack, &mut index));
     let mut reference: i32 = 0;
-    assert!(stack_pop(stack, &mut reference) == true);
+    assert!(stack_pop(stack, &mut reference));
     let array: &mut Vec<i32> = &mut heap[reference as usize];
     assert!((index as usize) < array.len());
     array[index as usize] = value;
@@ -241,146 +232,144 @@ pub fn iastore_helper(stack: &mut stack_t, program_counter: &mut usize, heap: &m
 pub fn dup_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut value: i32 = 0;
-    assert!(stack_pop(stack, &mut value) == true);
-    assert!(stack_push(stack, value) == true);
-    assert!(stack_push(stack, value) == true);
+    assert!(stack_pop(stack, &mut value));
+    assert!(stack_push(stack, value));
+    assert!(stack_push(stack, value));
 }
 
 pub fn iadd_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand + second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand + second_operand));
 }
 
 pub fn isub_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand - second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand - second_operand));
 }
 
 pub fn imul_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand * second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand * second_operand));
 }
 
 pub fn idiv_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand / second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand / second_operand));
 }
 
 pub fn irem_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand % second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand % second_operand));
 }
 
 pub fn ineg_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, -first_operand) == true);
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, -first_operand));
 }
 
 pub fn ishl_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand << second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand << second_operand));
 }
 
 pub fn ishr_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand >> second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand >> second_operand));
 }
 
 pub fn iushr_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, (first_operand as u32 >> second_operand) as i32,) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(
+        stack,
+        (first_operand as u32 >> second_operand) as i32,
+    ));
 }
 
 pub fn iand_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand & second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand & second_operand));
 }
 
 pub fn ior_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand | second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand | second_operand));
 }
 
 pub fn ixor_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     let mut second_operand: i32 = 0;
-    assert!(stack_pop(stack, &mut second_operand) == true);
-    assert!(stack_pop(stack, &mut first_operand) == true);
-    assert!(stack_push(stack, first_operand ^ second_operand) == true);
+    assert!(stack_pop(stack, &mut second_operand));
+    assert!(stack_pop(stack, &mut first_operand));
+    assert!(stack_push(stack, first_operand ^ second_operand));
 }
 
 pub fn iinc_helper(program_counter: &mut usize, method: &method_t, locals: &mut Vec<i32>) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut first_operand: u8 = 0;
-    let mut second_operand: i32 = 0;
     let fresh8 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    first_operand = (*method).code.code[fresh8];
+    let first_operand: u8 = (*method).code.code[fresh8];
     let fresh9 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    second_operand = (*method).code.code[fresh9] as i32;
+    let second_operand: i32 = (*method).code.code[fresh9] as i32;
     locals[first_operand as usize] += second_operand;
 }
 
 pub const JUMP_TWO_OPCODES_OFFSET: i32 = -3;
 
-pub fn jump_offset_helper(mut program_counter: &mut usize, mut method: &method_t) -> i32 {
-    let mut first_operand: i8 = 0;
-    let mut second_operand: i8 = 0;
+pub fn jump_offset_helper(program_counter: &mut usize, method: &method_t) -> i32 {
     let fresh11 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    first_operand = (*method).code.code[fresh11] as i8;
+    let first_operand: i8 = (*method).code.code[fresh11] as i8;
     let fresh12 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    second_operand = (*method).code.code[fresh12] as i8;
-    let mut jump_offset: i32 = 0;
-    jump_offset = (((first_operand as i16 as i32) << 8 as i32) as i16 as i32
+    let second_operand: i8 = (*method).code.code[fresh12] as i8;
+    let jump_offset: i32 = (((first_operand as i16 as i32) << 8_i32) as i16 as i32
         | second_operand as i32)
         + JUMP_TWO_OPCODES_OFFSET;
-    return jump_offset;
+    jump_offset
 }
 
 pub fn jump_one_op_helper(
@@ -392,7 +381,7 @@ pub fn jump_one_op_helper(
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
     *jump_offset = jump_offset_helper(program_counter, method);
-    assert!(stack_pop(stack, first_stack_operand) == true);
+    assert!(stack_pop(stack, first_stack_operand));
 }
 
 pub fn jump_two_ops_helper(
@@ -405,8 +394,8 @@ pub fn jump_two_ops_helper(
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
     *jump_offset = jump_offset_helper(program_counter, method);
-    assert!(stack_pop(stack, second_stack_operand) == true);
-    assert!(stack_pop(stack, first_stack_operand) == true);
+    assert!(stack_pop(stack, second_stack_operand));
+    assert!(stack_pop(stack, first_stack_operand));
 }
 
 pub fn ifeq_helper(stack: &mut stack_t, program_counter: &mut usize, method: &method_t) {
@@ -442,8 +431,7 @@ pub fn ifne_helper(stack: &mut stack_t, program_counter: &mut usize, method: &me
 pub fn iflt_helper(stack: &mut stack_t, program_counter: &mut usize, method: &method_t) {
     let mut first_stack_operand: i32 = 0;
     let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    jump_offset = 0;
+
     jump_one_op_helper(
         stack,
         program_counter,
@@ -456,11 +444,9 @@ pub fn iflt_helper(stack: &mut stack_t, program_counter: &mut usize, method: &me
     };
 }
 
-pub fn ifge_helper(stack: &mut stack_t, program_counter: &mut usize, mut method: &method_t) {
+pub fn ifge_helper(stack: &mut stack_t, program_counter: &mut usize, method: &method_t) {
     let mut first_stack_operand: i32 = 0;
     let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    jump_offset = 0;
     jump_one_op_helper(
         stack,
         program_counter,
@@ -507,9 +493,7 @@ pub fn if_icmpeq_helper(stack: &mut stack_t, program_counter: &mut usize, method
     let mut first_stack_operand: i32 = 0;
     let mut second_stack_operand: i32 = 0;
     let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    second_stack_operand = 0;
-    jump_offset = 0;
+
     jump_two_ops_helper(
         stack,
         program_counter,
@@ -527,9 +511,6 @@ pub fn if_icmpne_helper(stack: &mut stack_t, program_counter: &mut usize, method
     let mut first_stack_operand: i32 = 0;
     let mut second_stack_operand: i32 = 0;
     let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    second_stack_operand = 0;
-    jump_offset = 0;
     jump_two_ops_helper(
         stack,
         program_counter,
@@ -547,9 +528,7 @@ pub fn if_icmplt_helper(stack: &mut stack_t, program_counter: &mut usize, method
     let mut first_stack_operand: i32 = 0;
     let mut second_stack_operand: i32 = 0;
     let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    second_stack_operand = 0;
-    jump_offset = 0;
+
     jump_two_ops_helper(
         stack,
         program_counter,
@@ -567,9 +546,6 @@ pub fn if_icmpge_helper(stack: &mut stack_t, program_counter: &mut usize, method
     let mut first_stack_operand: i32 = 0;
     let mut second_stack_operand: i32 = 0;
     let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    second_stack_operand = 0;
-    jump_offset = 0;
     jump_two_ops_helper(
         stack,
         program_counter,
@@ -587,9 +563,6 @@ pub fn if_icmpgt_helper(stack: &mut stack_t, program_counter: &mut usize, method
     let mut first_stack_operand: i32 = 0;
     let mut second_stack_operand: i32 = 0;
     let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    second_stack_operand = 0;
-    jump_offset = 0;
     jump_two_ops_helper(
         stack,
         program_counter,
@@ -604,12 +577,9 @@ pub fn if_icmpgt_helper(stack: &mut stack_t, program_counter: &mut usize, method
 }
 
 pub fn if_icmple_helper(stack: &mut stack_t, program_counter: &mut usize, method: &method_t) {
+    let mut jump_offset: i32 = 0;
     let mut first_stack_operand: i32 = 0;
     let mut second_stack_operand: i32 = 0;
-    let mut jump_offset: i32 = 0;
-    first_stack_operand = 0;
-    second_stack_operand = 0;
-    jump_offset = 0;
     jump_two_ops_helper(
         stack,
         program_counter,
@@ -625,8 +595,7 @@ pub fn if_icmple_helper(stack: &mut stack_t, program_counter: &mut usize, method
 
 pub fn goto_helper(program_counter: &mut usize, method: &method_t) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut jump_offset: i32 = 0;
-    jump_offset = jump_offset_helper(program_counter, method);
+    let jump_offset = jump_offset_helper(program_counter, method);
     *program_counter = (*program_counter).wrapping_add(jump_offset as usize);
 }
 
@@ -638,7 +607,7 @@ pub fn ireturn_helper(
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut value: i32 = 0;
-    assert!(stack_pop(stack, &mut value) == true);
+    assert!(stack_pop(stack, &mut value));
     *result = Some(value);
 
     *program_counter = method.code.code_length as usize;
@@ -651,7 +620,7 @@ pub fn return_helper(program_counter: &mut usize, method: &method_t) {
 pub fn invokevirtual_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut value: i32 = 0;
-    assert!(stack_pop(stack, &mut value) == true);
+    assert!(stack_pop(stack, &mut value));
 
     println!("{}", value,);
     *program_counter = (*program_counter).wrapping_add(TWO_OPERAND_OFFSET);
@@ -666,32 +635,30 @@ pub fn invokestatic_helper(
     heap: &mut heap_t,
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
-    let mut first_operand: u8 = 0;
-    let mut second_operand: u8 = 0;
     let fresh13 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    first_operand = (*method).code.code[fresh13];
+    let first_operand = (*method).code.code[fresh13];
     let fresh14 = *program_counter;
     *program_counter = (*program_counter).wrapping_add(1);
-    second_operand = (*method).code.code[fresh14];
-    let sub_method_index: u16 = ((first_operand as i32) << 8 as i32 | second_operand as i32) as u16;
+    let second_operand: u8 = (*method).code.code[fresh14];
+    let sub_method_index: u16 = ((first_operand as i32) << 8_i32 | second_operand as i32) as u16;
     let sub_method: Option<method_t> = find_method_from_index(sub_method_index, class);
-    assert!(!sub_method.is_none());
+    assert!(sub_method.is_some());
     let mut locals_ptr: Vec<i32> =
         Vec::with_capacity(sub_method.clone().unwrap().code.max_locals.into());
 
     let num_args: usize = get_number_of_parameters(sub_method.as_ref().unwrap()) as usize;
     let mut popped_value: i32 = 0;
     let mut i: usize = 0;
-    while i < num_args.into() {
-        assert!(stack_pop(stack, &mut popped_value) == true);
+    while i < num_args {
+        assert!(stack_pop(stack, &mut popped_value));
 
         locals_ptr[num_args.wrapping_sub(i.wrapping_add(1)) as usize] = popped_value;
         i = i.wrapping_add(1)
     }
     let returned_value: Option<i32> = execute(&sub_method.unwrap(), &mut locals_ptr, class, heap);
     if returned_value.is_some() {
-        assert!(stack_push(stack, returned_value.unwrap()) == true);
+        assert!(stack_push(stack, returned_value.unwrap()));
     }
 }
 
@@ -707,20 +674,20 @@ pub fn newarray_helper(
     let first_operand: u8 = method.code.code[fresh15];
     assert!(first_operand == 10);
     let mut count: i32 = 0;
-    assert!(stack_pop(stack, &mut count) == true);
+    assert!(stack_pop(stack, &mut count));
     let new_array: Vec<i32> = Vec::with_capacity(count.try_into().unwrap());
     let tmp_ref = heap.len();
     heap.push(new_array);
-    assert!(stack_push(stack, tmp_ref as i32) == true);
+    assert!(stack_push(stack, tmp_ref as i32));
 }
 
 pub fn arraylength_helper(stack: &mut stack_t, program_counter: &mut usize, heap: &mut heap_t) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut reference: i32 = 0;
-    assert!(stack_pop(stack, &mut reference) == true);
+    assert!(stack_pop(stack, &mut reference));
 
     let array: Vec<i32> = heap[reference as usize].clone();
-    assert!(stack_push(stack, array[0]) == true);
+    assert!(stack_push(stack, array[0]));
 }
 
 pub fn getstatic_helper(program_counter: &mut usize) {
@@ -736,9 +703,7 @@ pub fn areturn_helper(
 ) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut reference: i32 = 0;
-    assert!(stack_pop(stack, &mut reference) == true);
-    // (*return_value).has_value = true;
-    // (*return_value).value = reference;
+    assert!(stack_pop(stack, &mut reference));
     *return_value = Some(reference);
     *program_counter = (*method).code.code_length as usize;
 }
@@ -758,7 +723,7 @@ fn opcode_helper(
     heap: &mut heap_t,
     result: &mut Option<i32>,
 ) {
-    let mut opcode: jvm_instruction_t =
+    let opcode: jvm_instruction_t =
         jvm_instruction_t::try_from(method.code.code[*program_counter]).unwrap();
     match opcode {
         jvm_instruction_t::i_nop => *program_counter += 1,
@@ -798,7 +763,7 @@ fn opcode_helper(
         | jvm_instruction_t::i_aload_3 => {
             aload_n_helper(opcode, stack, program_counter, locals);
         }
-        jvm_instruction_t::i_aload => {
+        jvm_instruction_t::i_iaload => {
             iaload_helper(stack, program_counter, heap);
         }
         jvm_instruction_t::i_istore => {
@@ -928,7 +893,7 @@ fn opcode_helper(
             areturn_helper(stack, program_counter, method, result);
         }
         _ => {
-            not_implemented_helper(program_counter, &mut opcode);
+            not_implemented_helper(program_counter, &opcode);
         }
     };
 }
@@ -977,7 +942,7 @@ pub fn execute(
         );
     }
     // stack_free(stack);
-    return result;
+    result
 }
 pub fn main_0() -> i32 {
     let args: Vec<String> = std::env::args().collect();
@@ -987,7 +952,7 @@ pub fn main_0() -> i32 {
     }
     // Open the class file for reading
     let f = File::open(args[1].clone()).unwrap();
-    let class_file = Rc::new(RefCell::new(BufReader::with_capacity(1, f)));
+    let class_file = Rc::new(RefCell::new(BufReader::new(f)));
 
     // Parse the class file
     let class: Rc<RefCell<class_file_t>> = get_class(class_file);
@@ -995,8 +960,7 @@ pub fn main_0() -> i32 {
     // The heap array is initially allocated to hold zero elements.
     let mut heap: Vec<Vec<i32>> = Vec::new();
     // Execute the main method
-    let main_method: Option<method_t> =
-        find_method(&MAIN_METHOD, &MAIN_DESCRIPTOR, &class.borrow());
+    let main_method: Option<method_t> = find_method(MAIN_METHOD, MAIN_DESCRIPTOR, &class.borrow());
     if main_method.is_none() {
         eprintln!("Missing main() method");
         exit(1);
@@ -1015,9 +979,5 @@ pub fn main_0() -> i32 {
         eprintln!("main() should return void");
         exit(1);
     }
-    // Free the internal data structures
-    // free_class(class);
-    // Free the heap
-    // heap_free(heap);
-    return 0;
+    0
 }

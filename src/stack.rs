@@ -4,7 +4,7 @@ use std::rc::Rc;
 pub fn stack_init(size: usize) -> Rc<RefCell<stack_t>> {
     Rc::new(RefCell::new(stack_t {
         contents: Vec::with_capacity(size),
-        size: size,
+        size,
         top: 0,
     }))
 }
@@ -28,12 +28,12 @@ pub fn stack_pop(stack: &mut stack_t, value: &mut i32) -> bool {
         *value = (*stack).contents[stack.top.wrapping_sub(1)];
         (*stack).contents[(*stack).top.wrapping_sub(1)] = NULL_FOUR_BYTES;
         (*stack).top = (*stack).top.wrapping_sub(1);
-        return true;
+        true
     } else {
         eprintln!("Error: Stack Underflow");
         stack_print(stack);
-        return false;
-    };
+        false
+    }
 }
 
 pub fn stack_is_full(stack: &mut stack_t) -> bool {
@@ -44,23 +44,19 @@ pub fn stack_is_full(stack: &mut stack_t) -> bool {
 }
 
 pub fn stack_is_empty(stack: &stack_t) -> bool {
-    if stack.top == 0 {
-        return true;
-    } else {
-        return false;
-    };
+    stack.top == 0
 }
 
 pub fn stack_push(stack: &mut stack_t, value: i32) -> bool {
     if !stack_is_full(stack) {
         stack.contents[stack.top] = value;
         stack.top = stack.top.wrapping_add(1);
-        return true;
+        true
     } else {
         eprintln!("Error: Stack Overflow, value: {}", value,);
         stack_print(stack);
-        return false;
-    };
+        false
+    }
 }
 #[derive(Clone, Debug)]
 #[repr(C)]
