@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::ops::Deref;
 use std::process::exit;
 use std::rc::Rc;
 
@@ -243,7 +244,10 @@ pub fn iadd_helper(stack: &mut stack_t, program_counter: &mut usize) {
     let mut second_operand: i32 = 0;
     assert!(stack_pop(stack, &mut second_operand));
     assert!(stack_pop(stack, &mut first_operand));
-    assert!(stack_push(stack, first_operand + second_operand));
+    assert!(stack_push(
+        stack,
+        first_operand.wrapping_add(second_operand)
+    ));
 }
 
 pub fn isub_helper(stack: &mut stack_t, program_counter: &mut usize) {
@@ -252,7 +256,10 @@ pub fn isub_helper(stack: &mut stack_t, program_counter: &mut usize) {
     let mut second_operand: i32 = 0;
     assert!(stack_pop(stack, &mut second_operand));
     assert!(stack_pop(stack, &mut first_operand));
-    assert!(stack_push(stack, first_operand - second_operand));
+    assert!(stack_push(
+        stack,
+        first_operand.wrapping_sub(second_operand)
+    ));
 }
 
 pub fn imul_helper(stack: &mut stack_t, program_counter: &mut usize) {
@@ -261,7 +268,10 @@ pub fn imul_helper(stack: &mut stack_t, program_counter: &mut usize) {
     let mut second_operand: i32 = 0;
     assert!(stack_pop(stack, &mut second_operand));
     assert!(stack_pop(stack, &mut first_operand));
-    assert!(stack_push(stack, first_operand * second_operand));
+    assert!(stack_push(
+        stack,
+        first_operand.wrapping_mul(second_operand)
+    ));
 }
 
 pub fn idiv_helper(stack: &mut stack_t, program_counter: &mut usize) {
@@ -270,7 +280,8 @@ pub fn idiv_helper(stack: &mut stack_t, program_counter: &mut usize) {
     let mut second_operand: i32 = 0;
     assert!(stack_pop(stack, &mut second_operand));
     assert!(stack_pop(stack, &mut first_operand));
-    assert!(stack_push(stack, first_operand / second_operand));
+    // eprintln!("idiv First Operand: {first_operand}, Second Operand: {second_operand}");
+    assert!(stack_push(stack, second_operand / first_operand));
 }
 
 pub fn irem_helper(stack: &mut stack_t, program_counter: &mut usize) {
@@ -279,14 +290,14 @@ pub fn irem_helper(stack: &mut stack_t, program_counter: &mut usize) {
     let mut second_operand: i32 = 0;
     assert!(stack_pop(stack, &mut second_operand));
     assert!(stack_pop(stack, &mut first_operand));
-    assert!(stack_push(stack, first_operand % second_operand));
+    assert!(stack_push(stack, second_operand % first_operand));
 }
 
 pub fn ineg_helper(stack: &mut stack_t, program_counter: &mut usize) {
     *program_counter = (*program_counter).wrapping_add(1);
     let mut first_operand: i32 = 0;
     assert!(stack_pop(stack, &mut first_operand));
-    assert!(stack_push(stack, -first_operand));
+    assert!(stack_push(stack, first_operand.wrapping_neg()));
 }
 
 pub fn ishl_helper(stack: &mut stack_t, program_counter: &mut usize) {
@@ -653,7 +664,7 @@ pub fn invokestatic_helper(
     while i < num_args {
         assert!(stack_pop(stack, &mut popped_value));
 
-        locals_ptr[num_args.wrapping_sub(i.wrapping_add(1)) as usize] = popped_value;
+        locals_ptr.push(popped_value);
         i = i.wrapping_add(1)
     }
     let returned_value: Option<i32> = execute(&sub_method.unwrap(), &mut locals_ptr, class, heap);
@@ -925,14 +936,14 @@ pub fn execute(
     heap: &mut heap_t,
 ) -> Option<i32> {
     let mut program_counter: usize = 0;
-    let stack = stack_init((*method).code.max_stack.into());
+    let mut stack = stack_init(method.deref().code.max_stack.into());
     // Return void
     let mut result: Option<i32> = None;
     while program_counter < (*method).code.code_length as usize {
         // I'm forcing this function and invokestatic to be always inlined to avoid
         // overflowing the stack in the recursion test.
         opcode_helper(
-            &mut stack.borrow_mut(),
+            &mut stack,
             &mut program_counter,
             method,
             locals,

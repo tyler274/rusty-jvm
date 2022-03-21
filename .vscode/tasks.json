@@ -1,6 +1,15 @@
 {
     "tasks": [
         {
+            "label": "(cargo) build",
+            "args": [
+                "build",
+                "-v"
+            ],
+            "command": "cargo",
+            "group": "build",
+        },
+        {
             "type": "cppbuild",
             "label": "make jvm",
             "command": "/usr/bin/make",

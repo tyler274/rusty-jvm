@@ -32,7 +32,39 @@
                 "engineLogging": false
             },
             "udb": "live",
-            "timezone": ""
+            "timezone": "",
+            "preLaunchTask": "(cargo) build"
+        },
+        {
+            "name": "(UDB) CoinSums",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/rusty-jvm",
+            "args": [
+                "tests/CoinSums.class"
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "udb",
+            "miDebuggerArgs": "",
+            "logging": {
+                "trace": false,
+                "traceResponse": false,
+                "engineLogging": false
+            },
+            "udb": "live",
+            "timezone": "",
+            "preLaunchTask": "(cargo) build"
         },
         {
             "name": "(GDB) jvm test1",
@@ -133,6 +165,29 @@
             "program": "${workspaceFolder}/jvm",
             "args": [
                 "${workspaceFolder}/tests/MoreLocals.class"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make jvm",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "(GDB) jvm coinsums",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/jvm",
+            "args": [
+                "${workspaceFolder}/tests/CoinSums.class"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
