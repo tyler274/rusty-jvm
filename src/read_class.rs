@@ -360,7 +360,7 @@ pub fn get_constant_pool(class_file: ClassFile) -> Vec<cp_info> {
         match constant.tag {
             cp_info_tag::CONSTANT_Utf8 => {
                 let length: u16 = read_u16(class_file.clone());
-                let mut info =
+                let info =
                     String::from_utf8(read_bytes(class_file.clone(), length as usize)).unwrap();
                 // info.push('\u{0}');
                 // eprintln!("{info:#?}");
